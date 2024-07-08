@@ -31,7 +31,7 @@ ed <- max(pip$Pos)
 chr_ref = pip$Chr[1]
 gene_sub <- subset(genes, type == "gene" & chr == chr_ref & ((start >= st & start <= ed)|(end >= st & end <= ed)))
 output <- data.frame(matrix(ncol=6,nrow=(nrow(gene_sub))))
-colnames(output) <- c("Chr", "Start", "End", "Strand","PPC","Attributes")
+colnames(output) <- c("Chr", "Start", "End", "Strand","PIP","Attributes")
 
 
 
@@ -49,7 +49,7 @@ for (i in 1:nrow(gene_sub)){
   output[i,c(1,2,3,4,6)] = gene_sub[i,c("chr", "start", "end", "strand","attributes")]
   output[i,5] = sum(model_sub[,..n])
 }
-output <- output[order(-output$PPC),]
+output <- output[order(-output$PIP),]
 
-output_file <- paste0(output_file,".geneppc.csv")
+output_file <- paste0(output_file,".genepip.csv")
 write.csv(output, output_file, quote =F, row.names =F)
