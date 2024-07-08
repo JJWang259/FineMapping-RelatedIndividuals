@@ -19,3 +19,12 @@ Building on this work, we introduce two new methods, FINEMAP-Adj and SuSiE-Adj, 
 ## SuSiE-Adj
 
 ## Gene PIP
+The PIP for a gene can be calculated by summing the posterior probabilities of all models that include any variants within that gene. We will use the results from BFMAP-SSS.
+
+```
+./bfmap --compute_grm 1 --binary_genotype_file geno --snp_info_file all.snp_info.csv --output grm1 --num_threads 10
+./bfmap --varcomp --phenotype phen.csv --trait milk --binary_grm_file grm1 --output milk --num_threads 10
+./bfmap --sss --phenotype phen.csv --trait milk --snp_info_file topQTL.snp_info.csv --snp_weight weight --binary_genotype_file geno --binary_grm grm1 --heritability 0.3 --output milk.topQTL --num_threads 10
+Rscript gene_ppc.R --chr 1 --gtf Sus_scrofa.Sscrofa11.1.111.gtf --m example.topQTL.model.csv --p example.topQTL.pip.csv --o example
+```
+
