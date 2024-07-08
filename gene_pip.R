@@ -1,5 +1,5 @@
 library(argparse)
-parser <- ArgumentParser(description = "PPC calculation")
+parser <- ArgumentParser(description = "Gene PIP calculation")
 parser$add_argument("--chr", help = "specify chromosome", required=TRUE)
 parser$add_argument("--gtf", help = "input gtf file", required=TRUE)
 parser$add_argument("--m", help = "input model file", required=TRUE)
