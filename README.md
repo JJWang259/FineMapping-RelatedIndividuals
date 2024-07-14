@@ -50,14 +50,38 @@ This is an extension of [FINEMAP](http://www.christianbenner.com/) with adjusted
 ``` bash
 ./finemap --sss --in-files <data> --dataset <num>
 ```
-A `data` file with three SNPs could look as follows:
+- `--dataset`: Specify the row number of datesets for fine-mapping in the data file. 
+- `--in-files`: A semicolon-separated text file and could look as follows:
 
 ```plaintext
-rsid chromosome position allele1 allele2 maf beta se
 z;ld;snp;config;cred;log;n_samples
 dataset.z;dataset.adj.ld;dataset.snp;dataset.config;dataset.cred;dataset.log;n_eff
 ```
+### Columns Explanation
 
+- `z`: Contains the names of Z files (input)
+- `ld`: Contains the names of relatedness-adjusted genotype correlation matrix (input)
+- `snp`: Contains the names of SNP files (output)
+- `config`: Contains the names of CONFIG files (output)
+- `cred`: Contains the names of CRED files (output)
+- `n_samples`: Contains the effective sample size.
+- `k`: Contains the names of optional K files (optional input)
+- `log`: Contains the names of optional LOG files (optional output)
+
+The `dataset.z` file is a space-delimited text file and contains the GWAS summary statistics one SNP per line.
+
+```plaintext
+rsid chromosome position allele1 allele2 maf beta se
+```
+### Columns Explanation
+- **rsid**: The SNP identifier.
+- **chromosome**: The chromosome number where the SNP is located.
+- **position**: The position of the SNP on the chromosome.
+- **allele1**: The  reference allele (the coded effect allele).
+- **allele2**: The other allele.
+- **maf**: The minor allele frequency.
+- **beta**: The effect size estimate.
+- **se**: The standard error of the effect size estimate.
 
 ## SuSiE-Adj
 This is an extension of [SuSiE](https://stephenslab.github.io/susieR/index.html) with adjusted summary statistics.
