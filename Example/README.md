@@ -104,9 +104,9 @@ write.table(out,"pheno1.susieadj.pip",quote=F,row.names=F,sep=",")
 
 ## FINEMAP-Adj
 
-
-
-
+```bash
+finemap --sss --prior-std 0.1 --in-files data --dataset 1
+```
 
 ## Gene PIP calculation
 Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-112/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.112.gtf.gz).
