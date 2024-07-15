@@ -110,3 +110,8 @@ write.table(out,"pheno1.susieadj.pip",quote=F,row.names=F,sep=",")
 
 ## Gene PIP calculation
 Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-112/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.112.gtf.gz).
+
+```bash
+bfmap --sss --phenotype pheno.1.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file geno_region --binary_grm grm1 --heritability 0.508427 --output pheno1 --num_threads 10
+Rscript gene_ppc.R --chr 6 --gtf Sus_scrofa.Sscrofa11.1.112.gtf --m pheno1.topQTL.model.csv --p pheno1.topQTL.pip.csv --o pheno1
+```
