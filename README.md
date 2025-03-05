@@ -27,7 +27,7 @@ ld_adj <- function(raw, h2, G) {
   
   # Efficient solve
   Xstar <- solve(L, X)
-  Rstar <- crossprod(Xstar)  # More efficient way to compute t(Xstar) %*% Xstar
+  Rstar <- crossprod(Xstar)  
   
   n_eff <- mean(diag(Rstar))
   print(paste0("Mean effective sample size is: ", n_eff))
