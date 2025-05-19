@@ -6,8 +6,8 @@ Building on this work, we introduce two new methods, FINEMAP-Adj and SuSiE-Adj, 
 ## Methods
 
 
-- **FINEMAP-adj**: An extension of FINEMAP with a relatedness-adjusted genotype correlation matrix.
-- **SuSiE-adj**: An extension of SuSiE with a relatedness-adjusted genotype correlation matrix.
+- **FINEMAP-adj**: An adaptation of FINEMAP with a relatedness-adjusted genotype correlation matrix.
+- **SuSiE-adj**: An adaptation of SuSiE with a relatedness-adjusted genotype correlation matrix.
 - **BFMAP**: (https://github.com/jiang18/bfmap/)
 
 ## [BFMAP](https://github.com/jiang18/bfmap/)
