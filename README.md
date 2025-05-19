@@ -1,14 +1,13 @@
-# Fine-Mapping for Samples of related individuals
+# Fine-Mapping for Samples of Related Individuals
 
-Most fine-mapping methods have been designed for samples of unrelated individuals, which can be problematic when dealing with related individuals, such as in farm animal populations. To address this, we previously developed BFMAP, a method utilizing individual-level data. BFMAP demonstrates higher power in detecting true causal mutations and lower false positive rates compared to existing methods when used with related individuals. 
-Building on this work, we introduce two new methods, FINEMAP-Adj and SuSiE-Adj, which extend FINEMAP and SuSiE, respectively, by incorporating a relatedness-adjusted genotype correlation matrix for fine-mapping in samples of related individuals. Both methods utilize summary statistics and can achieve performance comparable to BFMAP-SSS.
+Most fine-mapping methods have been designed for samples of unrelated individuals, which can be problematic when dealing with related individuals, such as in farm animal populations. To address this, we previously developed BFMAP, a method utilizing individual-level data. BFMAP demonstrates higher power in detecting true causal mutations and lower false positive rates compared to existing methods when used with related individuals.
+Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, which apply FINEMAP and SuSiE, respectively, by incorporating a relatedness-adjusted genotype correlation matrix for fine-mapping in samples of related individuals. Both methods utilize the adapted summary statistics and can achieve performance comparable to BFMAP-SSS.
 
 ## Methods
 
-
-- **FINEMAP-adj**: An adaptation of FINEMAP with a relatedness-adjusted genotype correlation matrix.
-- **SuSiE-adj**: An adaptation of SuSiE with a relatedness-adjusted genotype correlation matrix.
-- **BFMAP**: (https://github.com/jiang18/bfmap/)
+- **FINEMAP-adj**: A computational workflow for applying FINEMAP to related individuals by incorporating adjusted correlation matrices.
+- **SuSiE-adj**: A computational workflow for applying SuSiE to related individuals by incorporating adjusted correlation matrices.
+- **BFMAP**: https://github.com/jiang18/bfmap/
 
 ## [BFMAP](https://github.com/jiang18/bfmap/)
 
@@ -47,8 +46,8 @@ ld_adj <- function(raw, h2, G) {
 - `h2`: A numeric value representing the heritability estimate.
 - `G`: A genetic relationship matrix (GRM).
 
-### FINEMAP-Adj
-This is an extension of [FINEMAP](http://www.christianbenner.com/) with adjusted summary statistics.
+### FINEMAP-adj
+This is a summary‐statistic preprocessor for [FINEMAP](http://www.christianbenner.com/) with adjusted summary statistics.
 
 ``` bash
 ./finemap --sss --in-files <data> --dataset <num>
