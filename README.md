@@ -13,41 +13,38 @@ Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, 
 
 
 ## FINEMAP-adj and SuSiE-adj
+The computational workflows FINEMAP-adj and SuSiE-adj apply FINEMAP and SuSiE to related individuals by incorporating adapted summary statistics.
+
 ### Relatedness-adjusted genotype correlation matrix
 
+The `ld_adj` function adjusts genotype correlation matrices to account for relatedness among samples, which is necessary for accurate fine-mapping in populations with family structure.
 
+```r
+# Load required packages
+library(data.table)
+library(dplyr)
+
+# Source the function
+source("finemap_functs.R")
+
+# Generate adjusted LD matrix
+adj_result <- ld_adj(raw, h2, G)
+R_adj <- adj_result$ld_matrix
+n_eff <- adj_result$n_eff
 ```
-# R script to generate Relatedness-adjusted genotype correlation matrix
-ld_adj <- function(raw, h2, G) {
-  eta <- h2 / (1 - h2)
-  diag(G) <- eta * diag(G) + 1
-  L <- t(chol(G))
-  X <- as.matrix(raw)
-  
-  # Efficient scaling and centering
-  X <- scale(X, center = TRUE, scale = TRUE)
-  
-  # Efficient solve
-  Xstar <- solve(L, X)
-  Rstar <- crossprod(Xstar)  
-  
-  n_eff <- mean(diag(Rstar))
-  print(paste0("Mean effective sample size is: ", n_eff))
-  
-  Ds <- sqrt(diag(Rstar))
-  D_sol <- diag(1 / Ds, nrow = length(Ds), ncol = length(Ds))
-  R_adj <- D_sol %*% Rstar %*% D_sol
-  
-  return(list(ld_matrix = R_adj, n_eff = n_eff))
-}
-```
+
 #### Input
-- `raw`: A matrix of raw genotype data where rows represent individuals and columns represent SNPs.
+- `raw`: A matrix of raw genotype data where rows represent individuals and columns represent SNPs. Individual order must match the order in the genomic relationship matrix G.
 - `h2`: A numeric value representing the heritability estimate.
-- `G`: A genetic relationship matrix (GRM).
+- `G`: A genomic relationship matrix (GRM). Must have the same individual order as the raw genotype matrix.
+
+#### Output
+- `ld_matrix`: The relatedness-adjusted genotype correlation matrix.
+- `n_eff`: Mean effective sample size value.
+
 
 ### FINEMAP-adj
-This is a summary‐statistic preprocessor for [FINEMAP](http://www.christianbenner.com/) with adjusted summary statistics.
+This is a computational workflow for applying [FINEMAP](http://www.christianbenner.com/) with adapted summary statistics.
 
 ``` bash
 ./finemap --sss --in-files <data> --dataset <num>
@@ -84,8 +81,8 @@ rsid chromosome position allele1 allele2 maf beta se
 - **beta**: The effect size estimate.
 - **se**: The standard error of the effect size estimate.
 
-### SuSiE-Adj
-This is an extension of [SuSiE](https://stephenslab.github.io/susieR/index.html) with adjusted summary statistics.
+### SuSiE-adj
+This is a computational workflow for applying [SuSiE](https://stephenslab.github.io/susieR/index.html) with adapted summary statistics.
 
 The `susieR` package needs to be installed in advance. 
 
@@ -118,7 +115,7 @@ library(dplyr)
 source("genepip.R")
 
 # Calculate gene PIP
-genepip <- calcGenePIP(genes, pip, model, method, chr)
+genepip <- calc_gene_pip(genes, pip, model, method, chr)
 ```
 
 #### Input
@@ -135,7 +132,4 @@ genepip <- calcGenePIP(genes, pip, model, method, chr)
 #### Output
 Returns a data.frame with columns: Chr, Start, End, PIP, Attributes, sorted by descending PIP value.
 
-
-
-
-## [Example](https://github.com/JJWang259/FineMapping-RelatedIndividuals/tree/main/Example)
+## [Example](https://github.com/JJWang259/FineMapping-RelatedIndividuals/tree/main/example)
