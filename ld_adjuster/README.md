@@ -1,20 +1,18 @@
 # LD Adjuster
 
-A high-performance C++ implementation for linkage disequilibrium (LD) adjustment of genomic relationship matrices, optimized for large-scale genetic data.
+A C++ program for adjusting linkage disequilibrium (LD) matrix with genomic relationship matrix.
 
 ## Features
 
-- **High Performance**: Optimized for dense matrices up to 50k×50k
-- **Memory Efficient**: Uses single-precision floating point arithmetic
-- **Robust**: Handles missing data and invariant SNPs automatically
-- **Compatible**: Reads standard PLINK raw files and GRM binary format
-- **Fast**: Uses Eigen library with optional BLAS acceleration
+- Handles missing data and invariant SNPs automatically
+- Reads PLINK raw files and MPH GRM files
+- Uses Eigen library with optional BLAS acceleration
 
 ## Requirements
 
 ### Dependencies
 - **Eigen3**: Linear algebra library (≥3.3)
-- **C++ Compiler**: Supporting C++11 (GCC ≥4.8, Clang ≥3.3)
+- **C++ Compiler**: Supporting C++11 (GCC ≥4.8 or Clang ≥3.3)
 - **Optional**: OpenBLAS or Intel MKL for maximum performance
 
 ### Installation on Linux (Ubuntu/Debian)
@@ -45,9 +43,6 @@ sudo dnf install gcc-c++ eigen3-devel openblas-devel
 # Standard build
 make
 
-# Debug build (for development)
-make debug
-
 # Clean build files
 make clean
 
@@ -64,7 +59,7 @@ make info
 
 ### Parameters
 - `--raw`: PLINK raw format genotype file
-- `--grm`: Prefix for GRM files (expects .grm.iid and .grm.bin)
+- `--grm`: Prefix for MPH GRM files (expects .grm.iid and .grm.bin)
 - `--h2`: Heritability value (0.0 to 1.0)
 - `--out`: Output file prefix
 - `--threads N`: Number of threads to use (optional, default: all available)
@@ -94,17 +89,17 @@ Tab-delimited text file with:
 
 The program generates three output files:
 
-### 1. Summary File (`.neff`)
+### 1. Summary File (`.summary`)
 ```
 Effective sample size: 1234
 Number of matched individuals: 2000
-Number of SNPs: 45000
+Number of SNPs: 5000
 Heritability: 0.50
 Computation time (ms): 15432
 Peak memory usage (MB): 8240
 ```
 
-### 2. LD Matrix (`.ldmatrix`)
+### 2. LD Matrix (`.ld`)
 Space-delimited correlation matrix (SNPs × SNPs):
 ```
 1.000000 0.234567 -0.123456 ...
@@ -116,15 +111,15 @@ Space-delimited correlation matrix (SNPs × SNPs):
 ### 3. SNP IDs (`.snpids`)
 One SNP identifier per line:
 ```
-rs1234567
-rs2345678
-rs3456789
+rs1234567_T
+rs2345678_A
+rs3456789_G
 ...
 ```
 
 ## Algorithm Details
 
-The LD adjustment algorithm follows these steps:
+The LD matrix adjustment algorithm follows these steps:
 
 1. **Data Matching**: Finds intersection of individuals between raw and GRM files
 2. **Quality Control**: Removes SNPs with zero variance
@@ -138,22 +133,11 @@ The LD adjustment algorithm follows these steps:
 ## Performance Optimization
 
 ### Memory Requirements
-For a matrix with `n` SNPs and `m` individuals:
-- **GRM matrix**: m × m × 4 bytes
-- **SNP matrix**: n × n × 4 bytes  
-- **Raw data**: m × n × 4 bytes
-- **Total**: ~(m² + n² + mn) × 4 bytes
-
-**Examples:**
-- **50k SNPs, 10k individuals**: ~12 GB RAM
-- **25k SNPs, 5k individuals**: ~2.7 GB RAM
-- **10k SNPs, 2k individuals**: ~0.4 GB RAM
-
-### Computation Time
-With optimized BLAS (approximate times):
-- **10k SNPs**: 1-5 minutes
-- **25k SNPs**: 15-45 minutes  
-- **50k SNPs**: 1-3 hours
+For a matrix with `m` SNPs and `n` individuals:
+- **GRM matrix**: n × n × 4 bytes
+- **SNP matrix**: m × m × 4 bytes  
+- **Raw data**: n × m × 4 bytes
+- **Total**: ~(m² + 2n² + mn) × 4 bytes
 
 ### Optimization Tips
 1. **Use OpenBLAS**: Install `libopenblas-dev` for best performance
@@ -183,14 +167,14 @@ sudo apt-get install libeigen3-dev
 **Slow performance**
 - Install optimized BLAS: `sudo apt-get install libopenblas-dev`
 - Rebuild after installing BLAS: `make clean && make`
+- Use multiple threads such as `--threads 8`
 
 ### Getting Help
 
 For questions or issues:
 1. Check this README for common solutions
 2. Verify input file formats match specifications
-3. Test with smaller datasets first
-4. Monitor memory usage during execution
+3. Monitor memory usage during execution
 
 ## Technical Details
 
