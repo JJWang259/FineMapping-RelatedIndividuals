@@ -115,7 +115,7 @@ library(dplyr)
 source("genepip.R")
 
 # Calculate gene PIP
-genepip <- calc_gene_pip(genes, pip, model, method, chr)
+genepip <- calc_gene_pip(genes, pip, model, method)
 ```
 
 #### Input
@@ -126,8 +126,7 @@ genepip <- calc_gene_pip(genes, pip, model, method, chr)
 - `model`: A data.table containing model configurations output from BFMAP-SSS or FINEMAP-adj.
   - For BFMAP-SSS: read from `*.model.csv`, with one column per SNP in the model and the last column containing PIP values
   - For FINEMAP-adj: read from `*.config`, requires columns 'config' (comma-separated SNP names) and 'prob' (probability)
-- `method`: Which method's output format is being used. Options: "BFMAP-SSS" or "FINEMAP-adj"
-- `chr`: Chromosome number.
+- `method`: Which method's output format is being used. Options: "BFMAP-SSS" or "FINEMAP-adj".
 
 #### Output
 Returns a data.frame with columns: Chr, Start, End, PIP, Attributes, sorted by descending PIP value.
