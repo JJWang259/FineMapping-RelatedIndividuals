@@ -56,11 +56,11 @@ ld_adj <- function(raw, h2, G) {
 #' @param chr Chromosome value (optional)
 #' @return Data frame with gene-level PIP values
 #' @export
-calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-adj"), chr = NULL) {
+calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-adj"), ext = 3000) {
   # Validate method parameter
   method <- match.arg(method)
   genes$chr  = as.character(genes$chr)
-  target_chr <- as.character(chr)
+  
   # Convert to data.table if not already
   if (!is.data.table(genes)) genes <- as.data.table(genes)
   if (!is.data.table(pip)) pip <- as.data.table(pip)
@@ -68,7 +68,7 @@ calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-ad
   # Set up method-specific variables
   if (method == "BFMAP-SSS") {
     # Get chromosome if not provided
-    if (is.null(chr)) chr <- as.character(pip$Chr[1])
+    chrlist <- as.character(unique(pip$Chr))
     
     # Define SNP range
     st <- min(pip$Pos)
@@ -79,7 +79,7 @@ calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-ad
     snp_col <- "SNPname"
   } else { # FINEMAP-adj
     # Get chromosome if not provided
-    if (is.null(chr)) chr <- pip$chromosome[1]
+    chrlist <- as.character(unique(pip$chromosome))
     
     # Define SNP range
     st <- min(pip$position)
@@ -89,10 +89,11 @@ calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-ad
     pos_col <- "position"
     snp_col <- "rsid"
   }
+
   
   # Subset genes
   gene_sub <- subset(genes,
-                     chr == target_chr &
+                     chr %in% chrlist &
                      ((start >= st & start <= ed) | (end >= st & end <= ed)))
   
   # Create an output data frame
@@ -103,7 +104,7 @@ calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-ad
   for (i in seq_len(nrow(gene_sub))) {
     # Select SNPs in the pip file that fall within the gene's boundaries
     if (method == "BFMAP-SSS") {
-      snp_list <- subset(pip, get(pos_col) >= gene_sub$start[i] & get(pos_col) <= gene_sub$end[i])
+      snp_list <- subset(pip, get(pos_col) >= (gene_sub$start[i]-ext) & get(pos_col) <= (gene_sub$end[i]+ext))
       gene_snps <- snp_list[[snp_col]]
       
       # Calculate gene PIP
@@ -117,7 +118,7 @@ calc_gene_pip <- function(genes, pip, model, method = c("BFMAP-SSS", "FINEMAP-ad
         gene_pip <- 0
       }
     } else { # FINEMAP-adj
-      snp_list <- subset(pip, get(pos_col) >= gene_sub$start[i] & get(pos_col) <= gene_sub$end[i])
+      snp_list <- subset(pip, get(pos_col) >= (gene_sub$start[i]-ext) & get(pos_col) <= (gene_sub$end[i]+ext))
       gene_snps <- unique(snp_list[[snp_col]])
       
       # Calculate gene PIP
