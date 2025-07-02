@@ -425,8 +425,7 @@ private:
         
         // Write summary file
         ofstream summary_file(prefix + ".summary");
-        summary_file << fixed << setprecision(2);
-        summary_file << "Effective sample size: " << round(n_eff) << endl;
+        summary_file << "Effective sample size: " << n_eff << endl;
         summary_file << "Number of matched individuals: " << matched_individuals.size() << endl;
         summary_file << "Number of SNPs: " << snp_ids.size() << endl;
         summary_file << "Heritability: " << h2 << endl;
