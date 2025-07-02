@@ -62,7 +62,7 @@ https://github.com/JJWang259/FineMapping-RelatedIndividuals/releases/latest
 
 ### Parameters
 - `--raw`: PLINK raw format genotype file
-- `--grm`: Prefix for MPH GRM files (expects .grm.iid and .grm.bin)
+- `--grm`: Prefix for [MPH](https://jiang18.github.io/mph/) GRM files (expects .grm.iid and .grm.bin)
 - `--h2`: Heritability value (0.0 to 1.0)
 - `--out`: Output file prefix
 - `--threads N`: Number of threads to use (optional, default: all available)
@@ -81,11 +81,11 @@ Space-delimited text file with:
 - Header row: `FID IID PAT MAT SEX PHENOTYPE SNP1 SNP2 ...`
 - Data rows: Individual information + genotypes (0/1/2)
 
-### MPH GRM Files
+### [MPH](https://jiang18.github.io/mph/) GRM Files
 - **`.grm.iid`**: Text file with individual IDs (IID per line)
 - **`.grm.bin`**: Binary file containing:
   - Number of individuals (int32)
-  - Number of markers (float32)
+  - Number of markers or sum of weights (float32)
   - Lower triangular matrix values (float32)
 
 ## Output Files
