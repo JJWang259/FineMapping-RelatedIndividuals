@@ -506,7 +506,7 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(num_threads);
 #endif
     
-    cout << "LD Adjuster v1.0 by Jicai jiang" << endl;
+    cout << "LD Adjuster v1.0 by Jicai Jiang" << endl;
     cout << "================================" << endl;
     cout << "Raw file: " << raw_file << endl;
     cout << "GRM prefix: " << grm_prefix << endl;
