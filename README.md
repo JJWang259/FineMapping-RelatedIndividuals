@@ -15,33 +15,9 @@ Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, 
 ## FINEMAP-adj and SuSiE-adj
 The computational workflows FINEMAP-adj and SuSiE-adj apply FINEMAP and SuSiE to related individuals by incorporating adapted summary statistics.
 
-### Relatedness-adjusted genotype correlation matrix
+### Relatedness-adjusted LD matrix
 
-The `ld_adj` function adjusts genotype correlation matrices to account for relatedness among samples, which is necessary for accurate fine-mapping in populations with family structure.
-
-```r
-# Load required packages
-library(data.table)
-library(dplyr)
-
-# Source the function
-source("finemap_functs.R")
-
-# Generate adjusted LD matrix
-adj_result <- ld_adj(raw, h2, G)
-R_adj <- adj_result$ld_matrix
-n_eff <- adj_result$n_eff
-```
-
-#### Input
-- `raw`: A matrix of raw genotype data where rows represent individuals and columns represent SNPs. Individual order must match the order in the genomic relationship matrix G.
-- `h2`: A numeric value representing the heritability estimate.
-- `G`: A genomic relationship matrix (GRM). Must have the same individual order as the raw genotype matrix.
-
-#### Output
-- `ld_matrix`: The relatedness-adjusted genotype correlation matrix.
-- `n_eff`: Mean effective sample size value.
-
+[LD Adjuster](ld_adjuster/)
 
 ### FINEMAP-adj
 This is a computational workflow for applying [FINEMAP](http://www.christianbenner.com/) with adapted summary statistics.
