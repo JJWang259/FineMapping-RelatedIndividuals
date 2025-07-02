@@ -95,8 +95,8 @@ Effective sample size: 1234
 Number of matched individuals: 2000
 Number of SNPs: 5000
 Heritability: 0.50
-Computation time (ms): 15432
-Peak memory usage (MB): 8240
+Computation time (ms): 432
+Peak memory usage (MB): 41
 ```
 
 ### 2. LD Matrix (`.ld`)
