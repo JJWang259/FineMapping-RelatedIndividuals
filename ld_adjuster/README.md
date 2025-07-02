@@ -6,51 +6,19 @@ A C++ program for adjusting linkage disequilibrium (LD) matrix with genomic rela
 
 - Handles missing data and invariant SNPs automatically
 - Reads PLINK raw files and [MPH](https://jiang18.github.io/mph/) GRM files
-- Uses Eigen library with optional BLAS acceleration
+- Uses Eigen library with optional MKL acceleration
 
-## Requirements
+## Compilation
 
 ### Dependencies
-- **Eigen3**: Linear algebra library (≥3.3)
-- **C++ Compiler**: Supporting C++11 (GCC ≥4.8 or Clang ≥3.3)
-- **Optional**: OpenBLAS or Intel MKL for maximum performance
-
-### Installation on Linux (Ubuntu/Debian)
-```bash
-# Install dependencies
-sudo apt-get update
-sudo apt-get install build-essential libeigen3-dev
-
-# For optimal performance, install OpenBLAS
-sudo apt-get install libopenblas-dev
-
-# Clone or download the source files
-# ld_adjuster.cpp and Makefile
-```
-
-### Installation on Red Hat/CentOS
-```bash
-# Install dependencies
-sudo yum install gcc-c++ eigen3-devel
-
-# For RHEL 8+/CentOS 8+
-sudo dnf install gcc-c++ eigen3-devel openblas-devel
-```
-
-## Building
+- [**Eigen 3**](https://eigen.tuxfamily.org/index.php?title=Main_Page): Linear algebra library
+- [**Intel oneAPI HPC Toolkit**](https://www.intel.com/content/www/us/en/developer/tools/oneapi/toolkits.html): The toolkit offers maximum performance. 
 
 ```bash
-# Standard build
-make
-
-# Clean build files
-make clean
-
-# Show build configuration
-make info
+icpx -Wall -O3 -qmkl -qopenmp -std=c++11 -DEIGEN_USE_MKL_ALL -I/path/to/eigen-3.4.0 -o ld_adjuster ld_adjuster.cpp
 ```
 
-## Pre-compiled Binary
+## Binary Executable
 https://github.com/JJWang259/FineMapping-RelatedIndividuals/releases/latest
 
 ## Usage
