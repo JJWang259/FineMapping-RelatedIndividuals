@@ -1,3 +1,14 @@
+/*
+ * LD Adjuster - Adjust LD Matrix with GRM
+ * 
+ * Author: Jicai Jiang
+ * Version: 1.0
+ * 
+ * This program adjusts linkage disequilibrium matrix using genomic 
+ * relationship matrix to account for population structure and 
+ * relatedness in fine-mapping analysis.
+ */
+
 #include <Eigen/Dense>
 #include <iostream>
 #include <fstream>
@@ -495,8 +506,8 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(num_threads);
 #endif
     
-    cout << "LD Adjuster v1.0" << endl;
-    cout << "=================" << endl;
+    cout << "LD Adjuster v1.0 by Jicai jiang" << endl;
+    cout << "================================" << endl;
     cout << "Raw file: " << raw_file << endl;
     cout << "GRM prefix: " << grm_prefix << endl;
     cout << "Heritability: " << h2 << endl;
