@@ -5,7 +5,7 @@ A C++ program for adjusting linkage disequilibrium (LD) matrix with genomic rela
 ## Features
 
 - Handles missing data and invariant SNPs automatically
-- Reads PLINK raw files and MPH GRM files
+- Reads PLINK raw files and [MPH](https://jiang18.github.io/mph/) GRM files
 - Uses Eigen library with optional BLAS acceleration
 
 ## Requirements
@@ -50,6 +50,9 @@ make clean
 make info
 ```
 
+## Pre-compiled Binary
+https://github.com/JJWang259/FineMapping-RelatedIndividuals/releases/latest
+
 ## Usage
 
 ### Command Line Interface
@@ -68,7 +71,7 @@ make info
 
 ### Example
 ```bash
-./ld_adjuster --raw genotypes.raw --grm population_grm --h2 0.5 --out results --threads 8
+./ld_adjuster --raw test.raw --grm test --h2 0.5 --out test --threads 8
 ```
 
 ## Input File Formats
