@@ -74,12 +74,12 @@ make info
 ## Input File Formats
 
 ### PLINK Raw File (.raw)
-Tab-delimited text file with:
+Space-delimited text file with:
 - Header row: `FID IID PAT MAT SEX PHENOTYPE SNP1 SNP2 ...`
 - Data rows: Individual information + genotypes (0/1/2)
 
-### GRM Files
-- **`.grm.iid`**: Text file with individual IDs (FID IID per line)
+### MPH GRM Files
+- **`.grm.iid`**: Text file with individual IDs (IID per line)
 - **`.grm.bin`**: Binary file containing:
   - Number of individuals (int32)
   - Number of markers (float32)
