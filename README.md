@@ -51,7 +51,7 @@ rsid chromosome position allele1 allele2 maf beta se
 - **rsid**: The SNP identifier.
 - **chromosome**: The chromosome number where the SNP is located.
 - **position**: The position of the SNP on the chromosome.
-- **allele1**: The  reference allele (the coded effect allele).
+- **allele1**: The  reference allele (the effect allele).
 - **allele2**: The other allele.
 - **maf**: The minor allele frequency.
 - **beta**: The effect size estimate.
