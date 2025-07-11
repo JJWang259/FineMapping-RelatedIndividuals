@@ -6,17 +6,12 @@ Refer to https://journals.plos.org/plosone/article?id=10.1371/journal.pone.02182
 
 Download at https://figshare.com/articles/dataset/Porcine_50K_SNP_genotypes_and_phenotypes_of_American_and_Canadian_Duroc_pig_populations/8019551
 
-## GRM construction
+## GWAS
 
 Constrct the GRM with [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#GREML).
 
 ```bash
 gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 20  --out gcta_grm 
-````
-
-## GWAS
-
-```bash
 gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --thread-num 20  --out out.gwa
 ````
 
