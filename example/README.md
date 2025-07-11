@@ -11,62 +11,19 @@ Download at https://figshare.com/articles/dataset/Porcine_50K_SNP_genotypes_and_
 Constrct the GRM with [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#GREML).
 
 ```bash
-gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 20  --out gcta_grm 
-gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --thread-num 20  --out out.gwa
+gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm 
+gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --thread-num 10  --out out.gwa
 ````
 
-
-## Heritability estimation
-
+## Heritability estimation and relatedness-adjusted genotype correlation matrix construction
 Estimate heritability using [BFMAP](https://github.com/jiang18/bfmap/tree/master).
-
-```bash
-bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_grm --num_threads 10
-bfmap --varcomp --phenotype pheno.sim.csv --trait pheno --binary_grm_file bfmap_grm --output pheno.sim --num_threads 10
-```
 The heritability of this simulated phenotype is estimated to be 0.542256.
 
-## Relatedness-adjusted genotype correlation matrix
+```bash
+mph --make_grm --binary_genotype data/American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
 
-```R
-# read grm
-ReadGRMBin=function(prefix, AllN=F, size=4){
-  sum_i=function(i){
-    return(sum(1:i))
-  }
-  BinFileName=paste(prefix,".grm.bin",sep="")
-  NFileName=paste(prefix,".grm.N.bin",sep="")
-  IDFileName=paste(prefix,".grm.id",sep="")
-  id = read.table(IDFileName)
-  n=dim(id)[1]
-  BinFile=file(BinFileName, "rb");
-  grm=readBin(BinFile, n=n*(n+1)/2, what=numeric(0), size=size)
-  NFile=file(NFileName, "rb");
-  if(AllN==T){
-    N=readBin(NFile, n=n*(n+1)/2, what=numeric(0), size=size)
-  }
-  else N=readBin(NFile, n=1, what=numeric(0), size=size)
-  closeAllConnections()
-  i=sapply(1:n, sum_i)
-  return(list(diag=grm[i], off=grm[-i], id=id, N=N))
-}
+````
 
-source("finemap_functs.R")
-raw = fread("region.raw",head=T)
-raw = raw[,-(1:6)]
-bin = ReadGRMBin("gcta_grm")
-np = length(bin$diag)
-G = matrix(0, nrow=np, ncol=np)
-G[upper.tri(G)] = bin$off
-G = G + t(G)
-diag(G) = bin$diag
-h2 = 0.542256
-result <- ld_adj(raw, h2, G)
-R_adj <- result$ld_matrix
-n_eff <- result$n_eff
-write.table(R_adj, "adj.ld", quote = FALSE, row.names = FALSE, col.names = FALSE)
-```
-The mean effective sample size is 750.
 
 
 ## FINEMAP-adj
@@ -103,7 +60,8 @@ write.table(out,"out.susieadj.pip",quote=F,row.names=F,sep=",")
 
 ## BFMAP
 ```bash
-bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file geno_region --binary_grm grm1 --heritability 0.508427 --output pheno1 --num_threads 10
+bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_grm --num_threads 10
+bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_grm --heritability 0.524424 --output sss --num_threads 10
 ```
 
 ## Gene PIP calculation
