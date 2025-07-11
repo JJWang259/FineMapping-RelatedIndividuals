@@ -5,7 +5,6 @@
 ###########################################
 
 library(data.table)
-library(dplyr)
 
 #---------------------------------------
 # Relatedness-adjusted LD matrix generation
