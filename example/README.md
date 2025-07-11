@@ -6,36 +6,81 @@ Refer to https://journals.plos.org/plosone/article?id=10.1371/journal.pone.02182
 
 Download at https://figshare.com/articles/dataset/Porcine_50K_SNP_genotypes_and_phenotypes_of_American_and_Canadian_Duroc_pig_populations/8019551
 
-## GWAS
+## Prerequisites
+- GCTA (v1.94+): https://yanglab.westlake.edu.cn/software/gcta/
+- MPH: https://jiang18.github.io/mph/
+- R (for downstream analysis)
 
-Constrct the GRM with [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#GREML).
+
+
+## GWAS
+For demonstration purposes, we perform GWAS on a pre-selected candidate region to reduce computational time. In a real analysis, you would run GWAS on the full dataset first.
 
 ```bash
-gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm 
+# Extract candidate region
+plink --bfile American_Duroc_pigs_genotypes_qc --extract candidate_list.csv --make-bed --out candidate_region
+# Construct GRM using full dataset
+gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm
+# Run GWAS
 gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --thread-num 10  --out out.gwa
 ````
 
-## Heritability estimation and relatedness-adjusted genotype correlation matrix construction
-Estimate heritability using [BFMAP](https://github.com/jiang18/bfmap/tree/master).
-The heritability of this simulated phenotype is estimated to be 0.542256.
+## Relatedness-adjusted LD matrix
 
+[GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) using MPH.
 ```bash
-mph --make_grm --binary_genotype data/American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
-
+mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
+mph --reml --grm_list grm_list.txt --phenotype pheno.sim.csv --trait pheno --num_threads 10 --out mph_h2
 ````
 
+The heritability estimate is found in `mph_h2.mq.vc.csv`:
+```
+trait_x,trait_y,vc_name,m,var,seV,pve,seP,enrichment,seE,mph_grm,mph_grm,err
+pheno,pheno,mph_grm,38646,0.531154,0.0364273,0.525258,0.0214742,1,NA,NA,0.00132695,-0.000221669
+pheno,pheno,err,NA,0.480072,0.0149826,0.474742,0.0214742,NA,NA,NA,-0.000221669,0.000224478
+```
+The estimated heritability for this simulated phenotype is **h² = 0.525258**
+
+
+### Relatedness-adjusted LD matrix
+```bash
+plink --bfile American_Duroc_pigs_genotypes_qc --extract snp_info.csv --recode A --out candidate_region 
+ld_adjuster --raw candidate_region.raw --grm mph_grm --h2 0.525258 --out adj --threads 10
+````
+LD Adjuster generates three outputs that are essential for fine-mapping:
+- `adj.summary` → Contains **effective sample size** (804 in this example) for fine-mapping
+- `adj.ld` → **LD correlation matrix** input for summary-statistics based fine-mapping
+- `adj.snpids` → **SNP identifiers** with counted alleles (e.g., `rs1234567_T`)
 
 
 ## FINEMAP-adj
 
 ```R
 library(data.table)
-gwa_result <- fread("out.gwa,mlma", head =T)
+gwa_result <- fread("out.gwa.mlma", head =T)
 z <- gwa_result[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
+snpids <- fread("adj.snpids", header = FALSE)
+snpids[, `:=`( SNP = sub("_[A-Z]$", "", V1), counted_allele = sub(".*_", "", V1))]
+z <- snpids[z, on = "SNP", nomatch = 0]
+z[A1 != counted_allele, `:=`(A1 = A2, A2 = A1, b = -b)]
 z[Freq > 0.5, Freq := 1 - Freq]
-
+z <- z[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
 colnames(z) = c("rsid", "chromosome","position","allele1","allele2","maf", "beta","se")
 fwrite(z, "data.finemap.z", sep = " ")
+
+# Create FINEMAP master file
+finemap_master <- data.table(
+  z = "data.finemap.z",
+  ld = "adj.ld",
+  snp = "out.finemap.snp",
+  config = "out.finemap.config", 
+  cred = "out.finemap.cred",
+  log = "out.finemap.log",
+  n_samples = 804  # Use the effective sample size from adj.summary
+)
+
+# Write master file
+fwrite(finemap_master, "data", sep = ";")
 ```
 
 ```bash
@@ -46,34 +91,69 @@ finemap --sss --prior-std 0.1 --in-files data --dataset 1
 
 ```R
 library(susieR)
-gwa_result <- read.table("out.gwa.mlma",head=T)
-y <- read.csv("pheno.1.csv")
-n_eff=960
-betahat <- gwa_result[,'b']
-sebetahat <- gwa_result[,'se']
+library(data.table)
+gwa_result <- fread("out.gwa.mlma", head =T)
+z <- gwa_result[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
+snpids <- fread("adj.snpids", header = FALSE)
+snpids[, `:=`( SNP = sub("_[A-Z]$", "", V1), counted_allele = sub(".*_", "", V1))]
+z <- snpids[z, on = "SNP", nomatch = 0]
+z[A1 != counted_allele, `:=`(A1 = A2, A2 = A1, b = -b)]
+y <- fread("pheno.sim.csv")
+R_adj = fread("adj.ld")
+n_eff=804
+betahat <- z[,b]
+sebetahat <- z[,se]
 fitted_rss1 <- susie_rss(bhat = betahat, shat = sebetahat, n = n_eff, R = R_adj, var_y = var(y[,2]), L = 5,
                          estimate_residual_variance = TRUE)
 print(fitted_rss1$converged)
 out <- data.frame(SNP = gwa_result[,2], pip = fitted_rss1$pip)
+out <- out[order(-out$pip),]
 write.table(out,"out.susieadj.pip",quote=F,row.names=F,sep=",")
 ```
 
 ## BFMAP
 ```bash
+echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_grm --num_threads 10
-bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_grm --heritability 0.524424 --output sss --num_threads 10
+bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_grm --heritability 0.525258 --output sss --num_threads 10
 ```
 
 ## Gene PIP calculation
-Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-112/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.112.gtf.gz).
 
+### Prerequisites
+- `calc_gene_pip.R` containing the `calc_gene_pip` function (provided in this repository)
+- Completed BFMAP-SSS and FINEMAP analyses from previous steps
+Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-113/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.113.gtf.gz).
+
+
+### Download gene annotation
+```bash
+wget https://ftp.ensembl.org/pub/release-113/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.113.gtf.gz
+gunzip Sus_scrofa.Sscrofa11.1.113.gtf.gz
+````
+### Calculate gene PIPs
 ```R
-source("finemap_functs.R")
+source("calc_gene_pip.R")
 library(data.table)
-model <- fread("sss.model.csv",head=T)
 genes <- fread("Sus_scrofa.Sscrofa11.1.113.gtf")
 setnames(genes, names(genes), c("chr","source","type","start","end","score","strand","phase","attributes") )
 genes <- genes[type == "gene"]
-snp_pip <- fread("sss.pip.csv",head=T)
-result <- calc_gene_pip(genes, snp_pip, model, "BFMAP-SSS", chr = 1)
+
+# BFMAP-SSS gene PIP calculation
+sss_pip <- fread("sss.pip.csv", head = TRUE)
+sss_model <- fread("sss.model.csv", head = FALSE)
+sss_genepip <- calc_gene_pip(genes, sss_pip, sss_model)
+
+
+# FINEMAP gene PIP calculation  
+finemap_pip <- fread("out.finemap.snp")
+finemap_model <- fread("out.finemap.config", head = TRUE)
+finemap_genepip <- calc_gene_pip(genes, finemap_pip, finemap_model)
 ```
+### Output format
+The function returns a data frame with columns:
+- `Chr`: Chromosome
+- `Start`: Gene start position
+- `End`: Gene end position  
+- `PIP`: Gene-level posterior inclusion probability
+- `Attributes`: Gene annotation details from GTF
