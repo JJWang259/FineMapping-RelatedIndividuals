@@ -29,6 +29,7 @@ gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --th
 
 [GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) using MPH.
 ```bash
+echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
 echo "mph_grm 1" > grm_list.txt
 awk 'NR==1 {print "ID,pheno"} NR>1 {print $2","$3}' pheno.sim.txt > pheno.sim.csv
@@ -46,7 +47,7 @@ The estimated heritability for this simulated phenotype is **h² = 0.525258**
 
 ### Relatedness-adjusted LD matrix
 ```bash
-plink --bfile American_Duroc_pigs_genotypes_qc --extract snp_info.csv --recode A --out candidate_region 
+plink --bfile American_Duroc_pigs_genotypes_qc --extract candidate_list.csv --recode A --out candidate_region 
 ld_adjuster --raw candidate_region.raw --grm mph_grm --h2 0.525258 --out adj --threads 10
 ````
 LD Adjuster generates three outputs that are essential for fine-mapping:
@@ -124,7 +125,7 @@ bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv
 
 ### Prerequisites
 - `calc_gene_pip.R` containing the `calc_gene_pip` function (provided in this repository)
-- Completed BFMAP-SSS and FINEMAP analyses from previous steps
+- Completed BFMAP-SSS and FINEMAP-adj analyses from previous steps
 Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-113/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.113.gtf.gz).
 
 
