@@ -114,7 +114,13 @@ bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv
 ## Gene PIP calculation
 Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-112/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.112.gtf.gz).
 
-```bash
-bfmap --sss --phenotype pheno.1.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file geno_region --binary_grm grm1 --heritability 0.508427 --output pheno1 --num_threads 10
-Rscript gene_ppc.R --chr 6 --gtf Sus_scrofa.Sscrofa11.1.112.gtf --m pheno1.topQTL.model.csv --p pheno1.topQTL.pip.csv --o pheno1
+```R
+source("finemap_functs.R")
+library(data.table)
+model <- fread("sss.model.csv",head=T)
+genes <- fread("Sus_scrofa.Sscrofa11.1.113.gtf")
+setnames(genes, names(genes), c("chr","source","type","start","end","score","strand","phase","attributes") )
+genes <- genes[type == "gene"]
+snp_pip <- fread("sss.pip.csv",head=T)
+result <- calc_gene_pip(genes, snp_pip, model, "BFMAP-SSS", chr = 1)
 ```
