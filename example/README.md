@@ -30,6 +30,7 @@ gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --th
 [GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) using MPH.
 ```bash
 mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
+echo "mph_grm 1" > grm_list.txt
 mph --reml --grm_list grm_list.txt --phenotype pheno.sim.csv --trait pheno --num_threads 10 --out mph_h2
 ````
 
