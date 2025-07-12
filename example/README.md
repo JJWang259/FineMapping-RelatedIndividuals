@@ -2,59 +2,38 @@
 Below is a workflow example using American Duroc pig data. While fine-mapping is typically performed with sequence data, we use SNP chip data in this example for demonstration.
 
 ## Data
-The example data is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
-
-**Simulated phenotype**: For this demonstration, we simulated a phenotype with:
-- Heritability (h²) = 0.5
-- Two causal variants: `WU_10.2_1_29501954` and `ALGA0001958`
-- Total proportion of variance explained by causal variants = 0.04
-- Causal gene: *ARFGEF3*
-
-
-
-
+The example dataset is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
 
 The following files are included in the zip file:
 - American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
 - pheno.sim.txt
 
+The phenotypes in `pheno.sim.txt` are simulated:
+- Heritability (*h*²) = 0.5
+- Two causal variants: `WU_10.2_1_29501954` (chr1:26247570) and `ALGA0001958` (chr1:27032086)
+- Total proportion of variance explained by the two causal variants = 0.04
+- Causal gene: *ARFGEF3*
+
 ## Tools
-- **GWAS**: [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA)
-- **LD matrix adjustment**: [MPH](https://jiang18.github.io/mph/) and [LD Adjuster](../ld_adjuster/)
-- **Genotype file conversion**: [PLINK 1.9](https://www.cog-genomics.org/plink/)
+- **Genotype data manipulation**: [PLINK 1.9](https://www.cog-genomics.org/plink/)
+- **GWAS**: [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA) or [SLEMM](https://github.com/jiang18/slemm/)
 - **Fine-mapping**:
-  - **BFMAP** (https://github.com/jiang18/bfmap)
-  - **FINEMAP** (http://www.christianbenner.com/)
-  - **susieR** (install in R with `install.packages("susieR")`)
-
-
-### Candidate region extraction
-We first extracted a 10 Mb candidate region on chromosome 1 (20-30 Mb) and performed LD pruning to remove SNPs in perfect LD:
-```bash
-# Set the data folder as the working directory.
-# LD pruning: remove SNPs with r² > 0.999 within 1000 kb windows
-plink --bfile American_Duroc_pigs_genotypes_qc \
-      --chr 1 --from-bp 20000000 --to-bp 30000000 \
-      --indep-pairwise 1000 200 0.99999999999999 \
-      --out candidate_region
-
-# Extract pruned SNPs
-plink --bfile American_Duroc_pigs_genotypes_qc \
-      --chr 1 --from-bp 20000000 --to-bp 30000000 \
-      --extract candidate_region.prune.in \
-      --make-bed --out candidate_region
-````
+  - **Individual-level data**: [BFMAP](https://github.com/jiang18/bfmap)
+  - **Summary statistics**
+    1. **LD matrix adjustment**: [MPH](https://jiang18.github.io/mph/) and [LD Adjuster](../ld_adjuster/) (required for FINEMAP and susieR)
+    2. [FINEMAP](http://www.christianbenner.com/) and/or [susieR](https://stephenslab.github.io/susieR/)
 
 ## GWAS
-For this demonstration, we perform associations of SNPs in a pre-selected region (Chr1:20,000,000-30,000,000) rather than a genome-wide analysis.
 
 ```bash
+# Download and unzip data.zip.
 # Set the data folder as the working directory.
 
-# Construct GRM using full dataset
+# Construct GRM
 gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm
+
 # Run GWAS
-gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --thread-num 10  --out out.gwa
+gcta64 --mlma --bfile American_Duroc_pigs_genotypes_qc --grm gcta_grm --pheno pheno.sim.txt --thread-num 10  --out out.gwa
 ````
 
 ## Relatedness-adjusted LD matrix
