@@ -31,7 +31,7 @@ gcta64 --mlma --bfile candidate_region --grm gcta_grm --pheno pheno.sim.txt --th
 
 ## Relatedness-adjusted LD matrix
 
-[GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) using MPH.
+[GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#remlminque) using MPH.
 ```bash
 echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
