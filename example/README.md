@@ -2,15 +2,19 @@
 
 Below is a complete workflow example using American Duroc pig data. While fine-mapping is typically performed with sequence data, we use SNP chip data in this example for demonstration purposes.
 
-Refer to https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263 for the details.
-
-Download at https://figshare.com/articles/dataset/Porcine_50K_SNP_genotypes_and_phenotypes_of_American_and_Canadian_Duroc_pig_populations/8019551
-
+The original data is from [Crum et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
+The prepared example data is provided as `data.7z` in this repository.
 ## Prerequisites
-- GCTA (v1.94+): https://yanglab.westlake.edu.cn/software/gcta/
-- MPH: https://jiang18.github.io/mph/
-- R (for downstream analysis)
-
+### Core tools
+- **GCTA** (v1.94+): https://yanglab.westlake.edu.cn/software/gcta/
+- **MPH**: https://jiang18.github.io/mph/
+- **LD Adjuster**: https://github.com/jgblanc/LD-Adjuster
+- **PLINK** (v1.9): https://www.cog-genomics.org/plink/
+- 
+### Fine-mapping tools
+- **BFMAP**: https://github.com/jiang18/bfmap
+- **FINEMAP** (v1.4+): http://www.christianbenner.com/
+- **susieR**: Install in R with `install.packages("susieR")`
 
 
 ## GWAS
