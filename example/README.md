@@ -10,6 +10,10 @@ The example data is provided as [`data.zip`](./data.zip) in the current director
 - Total proportion of variance explained by causal variants = 0.04
 - Causal gene: *ARFGEF3*
 
+
+
+
+
 The following files are included in the zip file:
 - American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
 - pheno.sim.txt
@@ -24,14 +28,28 @@ The following files are included in the zip file:
   - **susieR** (install in R with `install.packages("susieR")`)
 
 
+### Candidate region extraction
+We first extracted a 10 Mb candidate region on chromosome 1 (20-30 Mb) and performed LD pruning to remove SNPs in perfect LD:
+```bash
+# LD pruning: remove SNPs with r² > 0.999 within 1000 kb windows
+plink --bfile American_Duroc_pigs_genotypes_qc \
+      --chr 1 --from-bp 20000000 --to-bp 30000000 \
+      --indep-pairwise 1000 200 0.99999999999999 \
+      --out candidate_region
+
+# Extract pruned SNPs
+plink --bfile American_Duroc_pigs_genotypes_qc \
+      --chr 1 --from-bp 20000000 --to-bp 30000000 \
+      --extract candidate_region.prune.in \
+      --make-bed --out candidate_region
+````
+
 ## GWAS
 For this demonstration, we perform associations of SNPs in a pre-selected region (Chr1:20,000,000-30,000,000) rather than a genome-wide analysis.
 
 ```bash
 # Set the data folder as the working directory.
 
-# Extract candidate region
-plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 20 --to-mb 30 --make-bed --out candidate_region
 # Construct GRM using full dataset
 gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm
 # Run GWAS
