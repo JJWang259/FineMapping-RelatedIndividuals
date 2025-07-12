@@ -4,8 +4,14 @@ Below is a workflow example using American Duroc pig data. While fine-mapping is
 ## Data
 The example data is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
 
+**Simulated phenotype**: For this demonstration, we simulated a phenotype with:
+- Heritability (h²) = 0.5
+- Two causal variants: `WU_10.2_1_29501954` and `ALGA0001958`
+- Total proportion of variance explained by causal variants = 0.04
+- Causal gene: *ARFGEF3*
+
 The following files are included in the zip file:
-- American_Duroc_pigs_qc.bed (.bim/.fam)
+- American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
 - pheno.sim.txt
 
 ## Tools
