@@ -31,6 +31,7 @@ The following files are included in the zip file:
 ### Candidate region extraction
 We first extracted a 10 Mb candidate region on chromosome 1 (20-30 Mb) and performed LD pruning to remove SNPs in perfect LD:
 ```bash
+# Set the data folder as the working directory.
 # LD pruning: remove SNPs with r² > 0.999 within 1000 kb windows
 plink --bfile American_Duroc_pigs_genotypes_qc \
       --chr 1 --from-bp 20000000 --to-bp 30000000 \
