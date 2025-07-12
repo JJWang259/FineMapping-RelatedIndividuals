@@ -8,9 +8,8 @@ The prepared example data is provided as `data.7z` in this repository.
 ### Core tools
 - **GCTA** (v1.94+): https://yanglab.westlake.edu.cn/software/gcta/
 - **MPH**: https://jiang18.github.io/mph/
-- **LD Adjuster**: https://github.com/jgblanc/LD-Adjuster
 - **PLINK** (v1.9): https://www.cog-genomics.org/plink/
-- 
+
 ### Fine-mapping tools
 - **BFMAP**: https://github.com/jiang18/bfmap
 - **FINEMAP** (v1.4+): http://www.christianbenner.com/
