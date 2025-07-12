@@ -61,7 +61,7 @@ LD Adjuster generates three outputs that are essential for fine-mapping:
 
 
 ## FINEMAP-adj
-
+Prepare summary statistics for FINEMAP.
 ```R
 library(data.table)
 gwa_result <- fread("out.gwa.mlma", head =T)
@@ -89,7 +89,7 @@ finemap_master <- data.table(
 # Write master file
 fwrite(finemap_master, "data", sep = ";")
 ```
-
+Run FINEMAP:
 ```bash
 finemap --sss --prior-std 0.1 --in-files data --dataset 1
 ```
