@@ -1,27 +1,31 @@
-# Example: American Duroc data
+# Example: American Duroc pig data
+Below is a workflow example using American Duroc pig data. While fine-mapping is typically performed with sequence data, we use SNP chip data in this example for demonstration.
 
-Below is a complete workflow example using American Duroc pig data. While fine-mapping is typically performed with sequence data, we use SNP chip data in this example for demonstration purposes.
+## Data
+The example data is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
 
-The original data is from [Crum et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
-The prepared example data is provided as `data.7z` in this repository.
-## Prerequisites
-### Core tools
-- **GCTA** (v1.94+): https://yanglab.westlake.edu.cn/software/gcta/
-- **MPH**: https://jiang18.github.io/mph/
-- **PLINK** (v1.9): https://www.cog-genomics.org/plink/
+The following files are included in the zip file:
+- American_Duroc_pigs_qc.bed (.bim/.fam)
+- pheno.sim.txt
 
-### Fine-mapping tools
-- **BFMAP**: https://github.com/jiang18/bfmap
-- **FINEMAP** (v1.4+): http://www.christianbenner.com/
-- **susieR**: Install in R with `install.packages("susieR")`
+## Tools
+- **GWAS**: [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA)
+- **LD matrix adjustment**: [MPH](https://jiang18.github.io/mph/) and [LD Adjuster](../ld_adjuster/)
+- **Genotype file conversion**: [PLINK 1.9](https://www.cog-genomics.org/plink/)
+- **Fine-mapping**:
+  - **BFMAP** (https://github.com/jiang18/bfmap)
+  - **FINEMAP** (http://www.christianbenner.com/)
+  - **susieR** (install in R with `install.packages("susieR")`)
 
 
 ## GWAS
-For demonstration purposes, we perform GWAS on a pre-selected candidate region to reduce computational time. In a real analysis, you would run GWAS on the full dataset first.
+For this demonstration, we perform associations of SNPs in a pre-selected region (Chr1:20,000,000-30,000,000) rather than a genome-wide analysis.
 
 ```bash
+# Set the data folder as the working directory.
+
 # Extract candidate region
-plink --bfile American_Duroc_pigs_genotypes_qc --extract candidate_list.csv --make-bed --out candidate_region
+plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 20 --to-mb 30 --make-bed --out candidate_region
 # Construct GRM using full dataset
 gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm
 # Run GWAS
