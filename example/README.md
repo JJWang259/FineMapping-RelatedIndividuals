@@ -87,7 +87,7 @@ ld_adjusted_prefix = "ld_adjusted"
 out_prefix = "finemap"
 gwa_file = "trait1.chr1.txt"
 frq_file = "pigs.frq"
-n_eff = 750.727
+n_eff = 751
 
 gwa_result <- fread(gwa_file, head =T)
 maf <- fread(frq_file, head=T)
@@ -98,7 +98,8 @@ snpids <- fread(paste0(ld_adjusted_prefix,".snpids"), header = FALSE)
 snpids[, `:=`( SNP = sub("_[^_]*$", "", V1), counted_allele = sub(".*_", "", V1))]
 
 z <- snpids[z, on = "SNP", nomatch = 0]
-z[A2 != counted_allele, `:=`(b = -b)]
+z[A2 != counted_allele, `:=`(BETA = -BETA)]
+z <- z[, .(SNP, CHR, BP, A1, A2, MAF, BETA, SE)]
 colnames(z) = c("rsid", "chromosome","position","allele1","allele2","maf", "beta","se")
 fwrite(z, paste0(out_prefix, ".z"), sep = " ")
 
