@@ -168,7 +168,7 @@ bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candi
 ### Prerequisites
 - [`calc_gene_pip.R`](../calc_gene_pip.R)
 - Output files from BFMAP-SSS or FINEMAP-adj
-- [Ensembl GTF file](https://useast.ensembl.org/info/website/upload/gff.html) for gene annotations
+- [Ensembl GTF file](https://www.ensembl.org/info/website/upload/gff.html) for gene annotations
 
 ### Download gene annotation
 ```bash
