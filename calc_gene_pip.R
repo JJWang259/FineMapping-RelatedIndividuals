@@ -37,7 +37,7 @@ calc_gene_pip <- function(gtf, pip, model, method = NULL, ext = 3000) {
     pip[[chr_col]] <- as.character(pip[[chr_col]])
     
   } else if (method == "FINEMAP") {
-    required_cols <- c("rsid", "chromosome", "position", "prob")
+    required_cols <- c("rsid", "chromosome", "position")
     missing_cols <- setdiff(required_cols, names(pip))
     if (length(missing_cols) > 0) {
       stop(paste("Missing required columns for FINEMAP:", paste(missing_cols, collapse = ", ")))
