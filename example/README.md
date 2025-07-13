@@ -163,42 +163,41 @@ echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> 
 bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap --heritability 0.525258 --output sss --num_threads 10
 ```
 
-## Gene PIP calculation
+## Gene PIP
 
 ### Prerequisites
-- `calc_gene_pip.R` containing the `calc_gene_pip` function (provided in this repository)
-- Completed BFMAP-SSS and FINEMAP-adj analyses from previous steps
-Download gene annotation gtf file from ensembl dataset (https://ftp.ensembl.org/pub/release-113/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.113.gtf.gz).
-
+- [`calc_gene_pip.R`](../calc_gene_pip.R)
+- Output files from BFMAP-SSS or FINEMAP-adj
+- [Ensembl GTF file](https://useast.ensembl.org/info/website/upload/gff.html) for gene annotations
 
 ### Download gene annotation
 ```bash
 wget https://ftp.ensembl.org/pub/release-113/gtf/sus_scrofa/Sus_scrofa.Sscrofa11.1.113.gtf.gz
 gunzip Sus_scrofa.Sscrofa11.1.113.gtf.gz
 ````
+
 ### Calculate gene PIPs
 ```R
 source("calc_gene_pip.R")
 library(data.table)
-genes <- fread("Sus_scrofa.Sscrofa11.1.113.gtf")
-setnames(genes, names(genes), c("chr","source","type","start","end","score","strand","phase","attributes") )
-genes <- genes[type == "gene"]
+gtf <- fread("Sus_scrofa.Sscrofa11.1.113.gtf", sep="\t")
+setnames(gtf, names(gtf), c("seqname","source","feature","start","end","score","strand","frame","attribute") )
+gtf <- gtf[feature == "gene"]
 
 # BFMAP-SSS gene PIP calculation
 sss_pip <- fread("sss.pip.csv", head = TRUE)
 sss_model <- fread("sss.model.csv", head = FALSE)
-sss_genepip <- calc_gene_pip(genes, sss_pip, sss_model)
-
+sss_genepip <- calc_gene_pip(gtf, sss_pip, sss_model)
 
 # FINEMAP gene PIP calculation  
 finemap_pip <- fread("out.finemap.snp")
 finemap_model <- fread("out.finemap.config", head = TRUE)
-finemap_genepip <- calc_gene_pip(genes, finemap_pip, finemap_model)
+finemap_genepip <- calc_gene_pip(gtf, finemap_pip, finemap_model)
 ```
 ### Output format
-The function returns a data frame with columns:
+The function returns a data frame with the following columns:
 - `Chr`: Chromosome
 - `Start`: Gene start position
 - `End`: Gene end position  
 - `PIP`: Gene-level posterior inclusion probability
-- `Attributes`: Gene annotation details from GTF
+- `Attribute`: Gene annotation details from GTF
