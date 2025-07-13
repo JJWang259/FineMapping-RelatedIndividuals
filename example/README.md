@@ -8,7 +8,7 @@ The following files are included in the zip file:
 - American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
 - simulated_pheno.csv
 
-The phenotypic values in `simulated_pheno.txt` are simulated:
+The phenotypic values in `simulated_pheno.csv` are simulated:
 - Heritability (*h*²) = 0.5
 - Two causal variants: `WU_10.2_1_29501954` (chr1:26247570) and `ALGA0001958` (chr1:27032086)
 - Total proportion of variance explained by the two causal variants = 0.04
@@ -46,7 +46,7 @@ Computing relatedness-adjusted LD matrix requires a GRM and a heritability estim
 - [Heritability estimation](https://jiang18.github.io/mph/options/#remlminque)
 
 ```bash
-# Construct GRM
+# Construct GRM, reusing snp_info.csv used by SLEMM
 mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out chip
 
 # Estimate variance components
@@ -84,7 +84,7 @@ plink --bfile American_Duroc_pigs_genotypes_qc --freq --out pigs
 library(data.table)
 
 ld_adjusted_prefix = "ld_adjusted"
-out_prefix = "finemap"
+out_prefix = "finemap_adj"
 gwa_file = "trait1.chr1.txt"
 frq_file = "pigs.frq"
 n_eff = 751        # Must be an integer (required by FINEMAP)
@@ -119,7 +119,7 @@ fwrite(finemap_master, paste0(out_prefix, ".data"), sep = ";")
 ```
 Run FINEMAP:
 ```bash
-finemap --sss --prior-std 0.1 --in-files finemap.data --dataset 1
+finemap --sss --prior-std 0.1 --in-files finemap_adj.data --dataset 1
 ```
 
 ### SuSiE-adj
@@ -127,30 +127,39 @@ finemap --sss --prior-std 0.1 --in-files finemap.data --dataset 1
 ```R
 library(susieR)
 library(data.table)
-gwa_result <- fread("out.gwa.mlma", head =T)
-z <- gwa_result[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
-snpids <- fread("adj.snpids", header = FALSE)
-snpids[, `:=`( SNP = sub("_[A-Z]$", "", V1), counted_allele = sub(".*_", "", V1))]
-z <- snpids[z, on = "SNP", nomatch = 0]
-z[A2 != counted_allele, `:=`(b = -b)]
-y <- fread("pheno.sim.csv")
-R_adj = fread("adj.ld")
-n_eff=804
-betahat <- z[,b]
-sebetahat <- z[,se]
-fitted_rss1 <- susie_rss(bhat = betahat, shat = sebetahat, n = n_eff, R = R_adj, var_y = var(y[,2]), L = 5,
-                         estimate_residual_variance = TRUE)
-print(fitted_rss1$converged)
-out <- data.frame(SNP = gwa_result[,2], pip = fitted_rss1$pip)
+
+ld_adjusted_prefix = "ld_adjusted"
+out_prefix = "susie_adj"
+gwa_file = "trait1.chr1.txt"
+var_y = 1          # Phenotypic variance, needed by susieR
+n_eff = 751        
+
+snpids <- fread(paste0(ld_adjusted_prefix,".snpids"), header = FALSE)
+snpids[, `:=`( SNP = sub("_[^_]*$", "", V1), counted_allele = sub(".*_", "", V1))]
+
+gwa_result <- fread(gwa_file, head =T)
+gwa_result <- snpids[gwa_result, on = "SNP", nomatch = 0]
+gwa_result[A2 != counted_allele, `:=`(BETA = -BETA)]
+
+R_adj = fread(paste0(ld_adjusted_prefix, ".ld"))
+fit <- susie_rss(bhat = gwa_result[,BETA], shat = gwa_result[,SE], n = n_eff, R = R_adj, var_y = var_y, L = 5, estimate_residual_variance = TRUE)
+print(fit$converged)
+out <- data.frame(SNP = gwa_result[,SNP], pip = fit$pip)
 out <- out[order(-out$pip),]
-write.table(out,"out.susieadj.pip",quote=F,row.names=F,sep=",")
+write.csv(out, paste0(out_prefix, ".pip.csv"),quote=F,row.names=F)
 ```
 
 ### BFMAP
 ```bash
-echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
+# Construct GRM with BFMAP, reusing snp_info.csv used by SLEMM and MPH
 bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_grm --num_threads 10
-bfmap --sss --phenotype pheno.sim.csv --trait pheno --snp_info_file snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_grm --heritability 0.525258 --output sss --num_threads 10
+
+# Extract SNPs in the candidate region
+plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
+echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
+
+# Perform shotgun stochastic search with BFMAP
+bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_grm --heritability 0.525258 --output sss --num_threads 10
 ```
 
 ## Gene PIP calculation
