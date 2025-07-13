@@ -1,109 +1,55 @@
 # Fine-Mapping for Samples of Related Individuals
 
-Most fine-mapping methods have been designed for samples of unrelated individuals, which can be problematic when dealing with related individuals, such as in farm animal populations. To address this, we previously developed BFMAP, a method utilizing individual-level data. BFMAP demonstrates higher power in detecting true causal mutations and lower false positive rates compared to existing methods when used with related individuals.
-Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, which apply FINEMAP and SuSiE, respectively, by incorporating a relatedness-adjusted genotype correlation matrix for fine-mapping in samples of related individuals. Both methods utilize the adapted summary statistics and can achieve performance comparable to BFMAP-SSS.
+Most fine-mapping methods (e.g., FINEMAP and SuSiE) are designed for samples of unrelated individuals, which can be problematic when dealing with related individuals, such as in farm animal populations. To address this, we previously developed BFMAP, a method utilizing individual-level data. BFMAP demonstrates higher power for detecting true causal mutations and lower false positive rates compared to existing methods when applied to related individuals.
+
+Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, which apply FINEMAP and SuSiE, respectively, by incorporating a relatedness-adjusted LD matrix for fine-mapping in samples of related individuals. Both methods utilize adjusted summary statistics and can achieve performance comparable to BFMAP-SSS.
 
 ## Methods
-
-- **FINEMAP-adj**: A computational workflow for applying FINEMAP to related individuals by incorporating adjusted correlation matrices.
-- **SuSiE-adj**: A computational workflow for applying SuSiE to related individuals by incorporating adjusted correlation matrices.
-- **BFMAP**: https://github.com/jiang18/bfmap/
-
-## [BFMAP](https://github.com/jiang18/bfmap/)
-
+- **FINEMAP-adj**: Applies FINEMAP with relatedness-adjusted inputs
+- **SuSiE-adj**: Applies SuSiE with relatedness-adjusted inputs  
+- **BFMAP**: Individual-level fine-mapping method ([GitHub](https://github.com/jiang18/bfmap/))
 
 ## FINEMAP-adj and SuSiE-adj
-The computational workflows FINEMAP-adj and SuSiE-adj apply FINEMAP and SuSiE to related individuals by incorporating adapted summary statistics.
+The core of FINEMAP-adj and SuSiE-adj is the use of a relatedness-adjusted LD matrix, an adjusted sample size (effective sample size), and mixed-model association statistics.
 
-### Relatedness-adjusted LD matrix
+While mixed models are the standard method for GWAS, special attention is required for the relatedness-adjusted LD matrix and effective sample size, which can be computed using our [LD Adjuster](ld_adjuster/) tool. 
 
-[LD Adjuster](ld_adjuster/)
+These serve as standard inputs to [FINEMAP](http://www.christianbenner.com/) and [SuSiE](https://stephenslab.github.io/susieR/index.html) to enable FINEMAP-adj and SuSiE-adj, respectively.
 
-### FINEMAP-adj
-This is a computational workflow for applying [FINEMAP](http://www.christianbenner.com/) with adapted summary statistics.
+### [LD Adjuster](ld_adjuster/): relatedness-adjusted LD matrix
 
-``` bash
-./finemap --sss --in-files <data> --dataset <num>
-```
-- `--dataset`: Specify the row number of datesets for fine-mapping in the data file. 
-- `--in-files`: A semicolon-separated text file and could look as follows:
+### FINEMAP-adj: [FINEMAP](http://www.christianbenner.com/) with relatedness-adjusted inputs
+`finemap --sss` is the major routine for FINEMAP-adj.
 
-```plaintext
-z;ld;snp;config;cred;log;n_samples
-dataset.z;dataset.adj.ld;dataset.snp;dataset.config;dataset.cred;dataset.log;n_eff
-```
-
-- `z`: Contains the names of Z files (input)
-- `ld`: Contains the names of relatedness-adjusted genotype correlation matrix (input)
-- `snp`: Contains the names of SNP files (output)
-- `config`: Contains the names of CONFIG files (output)
-- `cred`: Contains the names of CRED files (output)
-- `n_samples`: Contains the effective sample size.
-- `k`: Contains the names of optional K files (optional input)
-- `log`: Contains the names of optional LOG files (optional output)
-
-The `dataset.z` file is a space-delimited text file and contains the GWAS summary statistics one SNP per line.
-
-```plaintext
-rsid chromosome position allele1 allele2 maf beta se
-```
-
-- **rsid**: The SNP identifier.
-- **chromosome**: The chromosome number where the SNP is located.
-- **position**: The position of the SNP on the chromosome.
-- **allele1**: The  reference allele (the effect allele).
-- **allele2**: The other allele.
-- **maf**: The minor allele frequency.
-- **beta**: The effect size estimate.
-- **se**: The standard error of the effect size estimate.
-
-### SuSiE-adj
-This is a computational workflow for applying [SuSiE](https://stephenslab.github.io/susieR/index.html) with adapted summary statistics.
-
-The `susieR` package needs to be installed in advance. 
-
-Fine-mapping with susieR using adjusted summary statistics
-``` R
-fitted_rss <- susie_rss(bhat = betahat, shat = sebetahat, n = n_eff, R = R_adj, var_y = var(y), L = 10,
-                         estimate_residual_variance = TRUE)
-```
-#### Parameters
-
-- `bhat`: Vector of effect size estimates.
-- `shat`: Vector of standard errors of the effect size estimates.
-- `n`: Effective sample size.
-- `R`: Relatedness-adjusted genotype correlation matrix
-- `var_y`: Variance of the phenotype.
-- `L`: Maximum number of causal variants to consider (default is 10).
-- `estimate_residual_variance`: Boolean flag to estimate residual variance (default is `FALSE`).
+### SuSiE-adj: [SuSiE](https://stephenslab.github.io/susieR/index.html) with relatedness-adjusted inputs
+[`susie_rss`](https://stephenslab.github.io/susieR/reference/susie_rss.html) is the major function for SuSiE-adj. Set `estimate_residual_variance = TRUE` as recommended.
 
 ## Gene PIP
-The Posterior Inclusion Probability (PIP) for a gene can be calculated by summing the posterior probabilities of all models that include any variants within that gene. This calculation can be performed using the results from BFMAP-SSS and FINEMAP-adj.
+The Posterior Inclusion Probability (PIP) for a gene can be calculated by summing the posterior probabilities of all models (or configs) that contain any variants within that gene. This calculation can be performed using results from BFMAP-SSS or FINEMAP/FINEMAP-adj.
 
 #### Usage
-We provide a unified R function that can calculate gene PIP from either BFMAP-SSS or FINEMAP-adj results.
+We provide an R function to calculate gene PIPs from either BFMAP-SSS or FINEMAP/FINEMAP-adj results.
 ```r
 # Load required packages
 library(data.table)
-library(dplyr)
 
 # Source the function
-source("genepip.R")
+source("calc_gene_pip.R")
 
-# Calculate gene PIP
-genepip <- calc_gene_pip(genes, pip, model)
+# Calculate gene PIPs
+genepip <- calc_gene_pip(gtf, pip, model)
 ```
 
 #### Input
-- `genes`: A data.table or data.frame containing gene annotations, with columns: chr, start, end, attributes.
-- `pip`: A data.table containing SNP PIP output from BFMAP-SSS or FINEMAP-adj.
-  - For BFMAP-SSS: read from `*.pip.csv`, requires columns Pos, SNPname, Chr
-  - For FINEMAP-adj: read from `*.snp`, requires columns position, rsid, chromosome
-- `model`: A data.table containing model configurations output from BFMAP-SSS or FINEMAP-adj.
-  - For BFMAP-SSS: read from `*.model.csv`, with one column per SNP in the model and the last column containing PIP values
-  - For FINEMAP-adj: read from `*.config`, requires columns 'config' (comma-separated SNP names) and 'prob' (probability)
+- `gtf`: A data.table or data.frame of Ensembl GTF data with columns: seqname, start, end, and attribute
+- `pip`: A data.table containing SNP PIPs from BFMAP-SSS or FINEMAP/FINEMAP-adj
+  - For BFMAP-SSS: read from `*.pip.csv` (requires columns: SNPname, Chr, and Pos)
+  - For FINEMAP-adj: read from `*.snp` (requires columns: rsid, chromosome, and position)
+- `model`: A data.table containing model configurations from BFMAP-SSS or FINEMAP/FINEMAP-adj
+  - For BFMAP-SSS: read from `*.model.csv`
+  - For FINEMAP-adj: read from `*.config` (requires columns: config and prob)
 
 #### Output
-Returns a data.frame with columns: Chr, Start, End, PIP, Attributes, sorted by descending PIP value.
+Returns a data.frame with columns: Chr, Start, End, PIP, and Attribute, sorted by descending PIP value.
 
 ## [Example](https://github.com/JJWang259/FineMapping-RelatedIndividuals/tree/main/example)
