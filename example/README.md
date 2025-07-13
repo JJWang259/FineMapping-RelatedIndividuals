@@ -6,7 +6,7 @@ The example dataset is provided as [`data.zip`](./data.zip) in the current direc
 
 The following files are included in the zip file:
 - American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
-- pheno.sim.txt
+- simulated_pheno.csv
 
 The phenotypes in `pheno.sim.txt` are simulated:
 - Heritability (*h*²) = 0.5
@@ -16,7 +16,7 @@ The phenotypes in `pheno.sim.txt` are simulated:
 
 ## Tools
 - **Genotype data manipulation**: [PLINK 1.9](https://www.cog-genomics.org/plink/)
-- **GWAS**: [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA) or [SLEMM](https://github.com/jiang18/slemm/)
+- **GWAS**: [SLEMM](https://github.com/jiang18/slemm/) or [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA)
 - **Fine-mapping**:
   - **Individual-level data**: [BFMAP](https://github.com/jiang18/bfmap)
   - **Summary statistics**
@@ -29,79 +29,99 @@ The phenotypes in `pheno.sim.txt` are simulated:
 # Download and unzip data.zip.
 # Set the data folder as the working directory.
 
-# Construct GRM
-gcta64 --make-grm  --bfile American_Duroc_pigs_genotypes_qc  --thread-num 10  --out gcta_grm
+# Create a file named snp_info.csv listing the SNPs to be included in the GRM.
+echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 
 # Run GWAS
-gcta64 --mlma --bfile American_Duroc_pigs_genotypes_qc --grm gcta_grm --pheno pheno.sim.txt --thread-num 10  --out out.gwa
+slemm --lmm --phenotype_file simulated_pheno.csv --trait trait1 --bfile American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --out trait1 --num_threads 10 --num_qf 100
+OMP_NUM_THREADS=10 slemm_gwa --pfile American_Duroc_pigs_genotypes_qc --slemm trait1 --out trait1.chr1.txt --chr 1
+
+# Note that the command above performs association tests for only SNPs on chromosome 1.
 ````
 
-## Relatedness-adjusted LD matrix
+## Fine-mapping
+### LD matrix adjustment
+Computing relatedness-adjusted LD matrix requires a GRM and a heritability estimate obtained using MPH:
+- [GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps)
+- [Heritability estimation](https://jiang18.github.io/mph/options/#remlminque)
 
-[GRM construction](https://jiang18.github.io/mph/options/#making-a-grm-from-snps) and [heritability estimation](https://jiang18.github.io/mph/options/#remlminque) using MPH.
 ```bash
-echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
-mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_grm
-echo "mph_grm 1" > grm_list.txt
-awk 'NR==1 {print "ID,pheno"} NR>1 {print $2","$3}' pheno.sim.txt > pheno.sim.csv
-mph --reml --grm_list grm_list.txt --phenotype pheno.sim.csv --trait pheno --num_threads 10 --out mph_h2
+# Construct GRM
+mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out chip
+
+# Estimate variance components
+echo "chip 1" > grm_list.txt
+mph --reml --grm_list grm_list.txt --phenotype simulated_pheno.csv --trait trait1 --num_threads 10 --out trait1
 ````
 
-The heritability estimate is found in `mph_h2.mq.vc.csv`:
-```
+The heritability estimate is shown in `trait1.mq.vc.csv`:
+```csv
 trait_x,trait_y,vc_name,m,var,seV,pve,seP,enrichment,seE,mph_grm,mph_grm,err
 pheno,pheno,mph_grm,38646,0.531154,0.0364273,0.525258,0.0214742,1,NA,NA,0.00132695,-0.000221669
 pheno,pheno,err,NA,0.480072,0.0149826,0.474742,0.0214742,NA,NA,NA,-0.000221669,0.000224478
 ```
-The estimated heritability for this simulated phenotype is **h² = 0.525258**
+The estimated *h*² for this simulated trait is `0.525258`.
 
+Based on the association analysis, we defined chr1:26,000,000-30,000,000 as the candidate region for fine-mapping.
 
-### Relatedness-adjusted LD matrix
 ```bash
-plink --bfile American_Duroc_pigs_genotypes_qc --extract candidate_list.csv --recode A --out candidate_region 
-ld_adjuster --raw candidate_region.raw --grm mph_grm --h2 0.525258 --out adj --threads 10
+plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --recode A --out candidate_region 
+ld_adjuster --raw candidate_region.raw --grm chip --h2 0.525258 --out ld_adjusted --threads 10
 ````
-LD Adjuster generates three outputs that are essential for fine-mapping:
-- `adj.summary` → Contains **effective sample size** (804 in this example) for fine-mapping
-- `adj.ld` → **LD correlation matrix** input for summary-statistics based fine-mapping
-- `adj.snpids` → **SNP identifiers** with counted alleles (e.g., `rs1234567_T`)
+The `ld_adjuster` command above generates three output files for fine-mapping using summary statistics:
+- `ld_adjusted.summary` → effective sample size (750.727 in this example)
+- `ld_adjusted.ld` → LD matrix 
+- `ld_adjusted.snpids` → SNP identifiers with counted alleles (e.g., `rs1234567_T`)
 
-
-## FINEMAP-adj
+### FINEMAP-adj
 Prepare summary statistics for FINEMAP.
+
+```sh
+plink --bfile American_Duroc_pigs_genotypes_qc --freq --out pigs
+```
+
 ```R
 library(data.table)
-gwa_result <- fread("out.gwa.mlma", head =T)
-z <- gwa_result[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
-snpids <- fread("adj.snpids", header = FALSE)
-snpids[, `:=`( SNP = sub("_[A-Z]$", "", V1), counted_allele = sub(".*_", "", V1))]
+
+ld_adjusted_prefix = "ld_adjusted"
+out_prefix = "finemap"
+gwa_file = "trait1.chr1.txt"
+frq_file = "pigs.frq"
+n_eff = 750.727
+
+gwa_result <- fread(gwa_file, head =T)
+maf <- fread(frq_file, head=T)
+gwa_result <- gwa_result[maf[, .(SNP, MAF)], on = "SNP", nomatch = 0]
+z <- gwa_result[, .(SNP, CHR, BP, A1, A2, MAF, BETA, SE)]
+
+snpids <- fread(paste0(ld_adjusted_prefix,".snpids"), header = FALSE)
+snpids[, `:=`( SNP = sub("_[^_]*$", "", V1), counted_allele = sub(".*_", "", V1))]
+
 z <- snpids[z, on = "SNP", nomatch = 0]
-z[A1 != counted_allele, `:=`(A1 = A2, A2 = A1, b = -b)]
-z[Freq > 0.5, Freq := 1 - Freq]
-z <- z[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
+z[A2 != counted_allele, `:=`(b = -b)]
 colnames(z) = c("rsid", "chromosome","position","allele1","allele2","maf", "beta","se")
-fwrite(z, "data.finemap.z", sep = " ")
+fwrite(z, paste0(out_prefix, ".z"), sep = " ")
 
 # Create FINEMAP master file
 finemap_master <- data.table(
-  z = "data.finemap.z",
-  ld = "adj.ld",
-  snp = "out.finemap.snp",
-  config = "out.finemap.config", 
-  cred = "out.finemap.cred",
-  log = "out.finemap.log",
-  n_samples = 804  # Use the effective sample size from adj.summary
+  z = paste0(out_prefix, ".z"),
+  ld = paste0(ld_adjusted_prefix, ".ld"),
+  snp = paste0(out_prefix, ".snp"),
+  config = paste0(out_prefix, ".config"), 
+  cred = paste0(out_prefix, ".cred"),
+  log = paste0(out_prefix, ".log"),
+  n_samples = n_eff  # Use the effective sample size from ld_adjusted.summary
 )
 
 # Write master file
-fwrite(finemap_master, "data", sep = ";")
+fwrite(finemap_master, paste0(out_prefix, ".data"), sep = ";")
 ```
 Run FINEMAP:
 ```bash
-finemap --sss --prior-std 0.1 --in-files data --dataset 1
+finemap --sss --prior-std 0.1 --in-files finemap.data --dataset 1
 ```
 
-## SuSiE-adj
+### SuSiE-adj
 
 ```R
 library(susieR)
@@ -111,7 +131,7 @@ z <- gwa_result[, .(SNP, Chr, bp, A1, A2, Freq, b, se)]
 snpids <- fread("adj.snpids", header = FALSE)
 snpids[, `:=`( SNP = sub("_[A-Z]$", "", V1), counted_allele = sub(".*_", "", V1))]
 z <- snpids[z, on = "SNP", nomatch = 0]
-z[A1 != counted_allele, `:=`(A1 = A2, A2 = A1, b = -b)]
+z[A2 != counted_allele, `:=`(b = -b)]
 y <- fread("pheno.sim.csv")
 R_adj = fread("adj.ld")
 n_eff=804
@@ -125,7 +145,7 @@ out <- out[order(-out$pip),]
 write.table(out,"out.susieadj.pip",quote=F,row.names=F,sep=",")
 ```
 
-## BFMAP
+### BFMAP
 ```bash
 echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_grm --num_threads 10
