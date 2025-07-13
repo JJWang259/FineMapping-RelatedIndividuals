@@ -8,7 +8,7 @@ The following files are included in the zip file:
 - American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
 - simulated_pheno.csv
 
-The phenotypes in `pheno.sim.txt` are simulated:
+The phenotypic values in `simulated_pheno.txt` are simulated:
 - Heritability (*h*²) = 0.5
 - Two causal variants: `WU_10.2_1_29501954` (chr1:26247570) and `ALGA0001958` (chr1:27032086)
 - Total proportion of variance explained by the two causal variants = 0.04
@@ -69,12 +69,12 @@ plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 -
 ld_adjuster --raw candidate_region.raw --grm chip --h2 0.525258 --out ld_adjusted --threads 10
 ````
 The `ld_adjuster` command above generates three output files for fine-mapping using summary statistics:
-- `ld_adjusted.summary` → effective sample size (750.727 in this example)
+- `ld_adjusted.summary` → effective sample size (`750.727` in this example)
 - `ld_adjusted.ld` → LD matrix 
 - `ld_adjusted.snpids` → SNP identifiers with counted alleles (e.g., `rs1234567_T`)
 
 ### FINEMAP-adj
-Prepare summary statistics for FINEMAP.
+Prepare summary statistics for FINEMAP:
 
 ```sh
 plink --bfile American_Duroc_pigs_genotypes_qc --freq --out pigs
@@ -87,7 +87,7 @@ ld_adjusted_prefix = "ld_adjusted"
 out_prefix = "finemap"
 gwa_file = "trait1.chr1.txt"
 frq_file = "pigs.frq"
-n_eff = 751
+n_eff = 751        # Must be an integer (required by FINEMAP)
 
 gwa_result <- fread(gwa_file, head =T)
 maf <- fread(frq_file, head=T)
