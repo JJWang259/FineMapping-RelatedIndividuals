@@ -48,6 +48,7 @@ genepip <- calc_gene_pip(gtf, pip, model)
 - `model`: A data.table containing model configurations from BFMAP-SSS or FINEMAP/FINEMAP-adj
   - For BFMAP-SSS: read from `*.model.csv`
   - For FINEMAP-adj: read from `*.config` (requires columns: config and prob)
+- `ext`: An optional integer defining upstream and downstream extension for gene boundaries, with a default value of 3000 (bp)
 
 #### Output
 Returns a data.frame with columns: Chr, Start, End, PIP, and Attribute, sorted by descending PIP value.
