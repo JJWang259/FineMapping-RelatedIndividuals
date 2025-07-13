@@ -40,7 +40,7 @@ library(data.table)
 source("calc_gene_pip.R")
 
 # Calculate gene PIPs
-genepip <- calc_gene_pip(gtf, pip, model, ext = 3000)
+gene_pip <- calc_gene_pip(gtf, pip, model, ext = 3000)
 ```
 
 #### Input
