@@ -180,18 +180,18 @@ gunzip Sus_scrofa.Sscrofa11.1.113.gtf.gz
 ```R
 source("calc_gene_pip.R")
 library(data.table)
-gtf <- fread("Sus_scrofa.Sscrofa11.1.113.gtf", sep="\t")
+gtf <- fread("Sus_scrofa.Sscrofa11.1.113.gtf", sep="\t", head = FALSE)
 setnames(gtf, names(gtf), c("seqname","source","feature","start","end","score","strand","frame","attribute") )
 gtf <- gtf[feature == "gene"]
 
 # BFMAP-SSS gene PIP calculation
-sss_pip <- fread("sss.pip.csv", head = TRUE)
-sss_model <- fread("sss.model.csv", head = FALSE)
+sss_pip <- fread("sss.pip.csv")
+sss_model <- fread("sss.model.csv")
 sss_genepip <- calc_gene_pip(gtf, sss_pip, sss_model)
 
 # FINEMAP gene PIP calculation  
-finemap_pip <- fread("out.finemap.snp")
-finemap_model <- fread("out.finemap.config", head = TRUE)
+finemap_pip <- fread("finemap_adj.snp")
+finemap_model <- fread("finemap_adj.config")
 finemap_genepip <- calc_gene_pip(gtf, finemap_pip, finemap_model)
 ```
 ### Output format
@@ -200,4 +200,4 @@ The function returns a data frame with the following columns:
 - `Start`: Gene start position
 - `End`: Gene end position  
 - `PIP`: Gene-level posterior inclusion probability
-- `Attribute`: Gene annotation details from GTF
+- `Attribute`: Attribute from GTF
