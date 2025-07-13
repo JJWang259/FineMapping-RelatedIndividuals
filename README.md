@@ -5,6 +5,7 @@ Most fine-mapping methods (e.g., FINEMAP and SuSiE) are designed for samples of 
 Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, which apply FINEMAP and SuSiE, respectively, by incorporating a relatedness-adjusted LD matrix for fine-mapping in samples of related individuals. Both methods utilize adjusted summary statistics and can achieve performance comparable to BFMAP-SSS.
 
 ## [Example](https://github.com/JJWang259/FineMapping-RelatedIndividuals/tree/main/example)
+**See a complete walkthrough** of fine-mapping with related individuals using pig genotypes.
 
 ## Methods
 - **FINEMAP-adj**: Applies FINEMAP with relatedness-adjusted inputs
@@ -39,7 +40,7 @@ library(data.table)
 source("calc_gene_pip.R")
 
 # Calculate gene PIPs
-genepip <- calc_gene_pip(gtf, pip, model)
+genepip <- calc_gene_pip(gtf, pip, model, ext = 3000)
 ```
 
 #### Input
