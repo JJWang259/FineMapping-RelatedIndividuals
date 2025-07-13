@@ -187,12 +187,12 @@ gtf <- gtf[feature == "gene"]
 # BFMAP-SSS gene PIP calculation
 sss_pip <- fread("sss.pip.csv")
 sss_model <- fread("sss.model.csv")
-sss_genepip <- calc_gene_pip(gtf, sss_pip, sss_model)
+sss_gene_pip <- calc_gene_pip(gtf, sss_pip, sss_model)
 
 # FINEMAP gene PIP calculation  
 finemap_pip <- fread("finemap_adj.snp")
 finemap_model <- fread("finemap_adj.config")
-finemap_genepip <- calc_gene_pip(gtf, finemap_pip, finemap_model)
+finemap_gene_pip <- calc_gene_pip(gtf, finemap_pip, finemap_model)
 ```
 ### Output format
 The function returns a data frame with the following columns:
