@@ -1,5 +1,7 @@
 # Example: American Duroc pig data
-Below is a workflow example using American Duroc pig data. While fine-mapping is typically performed with sequence data, we use SNP chip data in this example for demonstration.
+Below is a workflow example using American Duroc pig data. 
+> [!NOTE]
+> Fine-mapping is typically performed with sequence data, but we use SNP chip data in this example for demonstration.
 
 ## Data
 The example dataset is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
