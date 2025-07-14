@@ -47,10 +47,10 @@ Computing relatedness-adjusted LD matrix requires a GRM and a heritability estim
 
 ```bash
 # Construct GRM, reusing snp_info.csv used by SLEMM
-mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out chip
+mph --make_grm --binary_genotype American_Duroc_pigs_genotypes_qc --snp_info snp_info.csv --num_threads 10 --out mph_chip
 
 # Estimate variance components
-echo "chip 1" > grm_list.txt
+echo "mph_chip 1" > grm_list.txt
 mph --reml --grm_list grm_list.txt --phenotype simulated_pheno.csv --trait trait1 --num_threads 10 --out trait1
 ````
 
