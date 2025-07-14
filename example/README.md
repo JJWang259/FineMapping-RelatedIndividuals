@@ -66,7 +66,7 @@ Based on the association analysis, we defined chr1:26,000,000-30,000,000 as the 
 
 ```bash
 plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --recode A --out candidate_region 
-ld_adjuster --raw candidate_region.raw --grm chip --h2 0.525258 --out ld_adjusted --threads 10
+ld_adjuster --raw candidate_region.raw --grm mph_chip --h2 0.525258 --out ld_adjusted --threads 10
 ````
 The `ld_adjuster` command above generates three output files for fine-mapping using summary statistics:
 - `ld_adjusted.summary` → effective sample size (`750.727` in this example)
