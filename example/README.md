@@ -180,6 +180,7 @@ gunzip Sus_scrofa.Sscrofa11.1.113.gtf.gz
 ```R
 source("calc_gene_pip.R")
 library(data.table)
+
 gtf <- fread("Sus_scrofa.Sscrofa11.1.113.gtf", sep="\t", head = FALSE)
 setnames(gtf, names(gtf), c("seqname","source","feature","start","end","score","strand","frame","attribute") )
 gtf <- gtf[feature == "gene"]
