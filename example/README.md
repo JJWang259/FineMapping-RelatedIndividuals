@@ -153,14 +153,14 @@ write.csv(out, paste0(out_prefix, ".pip.csv"),quote=F,row.names=F)
 ```bash
 # Construct GRM with BFMAP, reusing snp_info.csv used by SLEMM and MPH
 # Note that BFMAP is currently not compatible with MPH's GRM format.
-bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap --num_threads 10
+bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
 
 # Extract SNPs in the candidate region
 plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
 echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
 
 # Perform shotgun stochastic search with BFMAP
-bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap --heritability 0.525258 --output sss --num_threads 10
+bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_chip --heritability 0.525258 --output sss --num_threads 10
 ```
 
 ## Gene PIP
