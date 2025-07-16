@@ -5,7 +5,7 @@ Below is a workflow example using American Duroc pig data.
 The example dataset is provided as [`data.zip`](./data.zip) in the current directory, with original chip genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
 
 The following files are included in the dataset:
-- **American_Duroc_genotypes_qc (.bed/.bim/.fam)**
+- **American_Duroc_pigs_genotypes_qc (.bed/.bim/.fam)**
   - Chip genotypes
   - Missing genotypes imputed using BEAGLE 
   - Quality-controlled with MAF >0.01 and HWE *P* >1E-9
@@ -36,10 +36,10 @@ The phenotypic values in `simulated_pheno.csv` were simulated with:
 # Set the data folder as the working directory.
 
 # Create a file named snp_info.csv listing the SNPs to be included in the GRM.
-echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_genotypes_qc.bim >> snp_info.csv
+echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
 
 # Run GWAS
-slemm --lmm --phenotype_file simulated_pheno.csv --trait trait1 --bfile American_Duroc_genotypes_qc --snp_info_file snp_info.csv --out trait1 --num_threads 10 --num_qf 100
+slemm --lmm --phenotype_file simulated_pheno.csv --trait trait1 --bfile American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --out trait1 --num_threads 10 --num_qf 100
 OMP_NUM_THREADS=10 slemm_gwa --pfile chr1.swim.imputed --slemm trait1 --out trait1.chr1.txt --chr 1
 ````
 > [!NOTE]
@@ -162,10 +162,10 @@ write.csv(out, paste0(out_prefix, ".pip.csv"),quote=F,row.names=F)
 ```bash
 # Construct GRM with BFMAP, reusing snp_info.csv used by SLEMM and MPH
 # Note that BFMAP is currently not compatible with MPH's GRM format.
-bfmap --compute_grm 2 --binary_genotype_file American_Duroc_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
+bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
 
 # Extract SNPs in the candidate region
-plink --bfile American_Duroc_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
+plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
 echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
 
 # Perform shotgun stochastic search with BFMAP
