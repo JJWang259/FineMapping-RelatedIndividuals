@@ -166,11 +166,18 @@ bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --
 
 # Extract SNPs in the candidate region
 plink --bfile chr1.swim.imputed --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
-echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
+echo "SNP" > candidate_region.snp.csv && awk '{print $2}' candidate_region.bim >> candidate_region.snp.csv
 
-# Perform shotgun stochastic search with BFMAP
-bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_snp_info.csv --binary_genotype_file candidate_region --binary_grm bfmap_chip --heritability 0.525258 --output sss --num_threads 10
+# Perform fine-mapping with the BFMAP forward selection approach 
+bfmap --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_region.snp.csv --binary_genotype_file candidate_region --binary_grm bfmap_chip --heritability 0.525258 --output forward --num_threads 10
+
+# Perform fine-mapping with the BFMAP shotgun stochastic search approach
+# To reduce search burden, use the variant list filtered by the forward selection approach
+(echo "SNP"; awk -F',' 'NR>1 {print $3}' forward.csv | sort -u) > candidate_region.snp_filtered.csv
+bfmap --sss --phenotype simulated_pheno.csv --trait trait1 --snp_info_file candidate_region.snp_filtered.csv --binary_genotype_file candidate_region --binary_grm bfmap_chip --heritability 0.525258 --output sss --num_threads 10
 ```
+> [!NOTE]
+> Using the variant list filtered by the forward selection approach can improve the performance of `--sss`. 
 
 ## Gene PIP
 
