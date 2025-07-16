@@ -78,7 +78,7 @@ plink --bfile chr1.swim.imputed --chr 1 --from-mb 26 --to-mb 30 --recode A --out
 ld_adjuster --raw candidate_region.raw --grm mph_chip --h2 0.525258 --out ld_adjusted --threads 10
 ````
 The `ld_adjuster` command above generates three output files for fine-mapping using summary statistics:
-- `ld_adjusted.summary` → effective sample size (`750.727` in this example)
+- `ld_adjusted.summary` → effective sample size (`788.94` in this example)
 - `ld_adjusted.ld` → LD matrix 
 - `ld_adjusted.snpids` → SNP identifiers with counted alleles (e.g., `rs1234567_T`)
 
@@ -96,7 +96,7 @@ ld_adjusted_prefix = "ld_adjusted"
 out_prefix = "finemap_adj"
 gwa_file = "trait1.chr1.txt"
 frq_file = "chr1.frq"
-n_eff = 751        # Must be an integer (required by FINEMAP)
+n_eff = 789        # Must be an integer (required by FINEMAP)
 
 gwa_result <- fread(gwa_file, head =T)
 maf <- fread(frq_file, head=T)
@@ -141,7 +141,7 @@ ld_adjusted_prefix = "ld_adjusted"
 out_prefix = "susie_adj"
 gwa_file = "trait1.chr1.txt"
 var_y = 1          # Phenotypic variance, needed by susieR
-n_eff = 751        
+n_eff = 789        
 
 snpids <- fread(paste0(ld_adjusted_prefix,".snpids"), header = FALSE)
 snpids[, `:=`( SNP = sub("_[^_]*$", "", V1), counted_allele = sub(".*_", "", V1))]
