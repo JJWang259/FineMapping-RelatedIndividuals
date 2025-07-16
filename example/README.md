@@ -165,7 +165,7 @@ write.csv(out, paste0(out_prefix, ".pip.csv"),quote=F,row.names=F)
 bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
 
 # Extract SNPs in the candidate region
-plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
+plink --bfile chr1.swim.imputed --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
 echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
 
 # Perform shotgun stochastic search with BFMAP
