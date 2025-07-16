@@ -1,23 +1,28 @@
 # Example: American Duroc pig data
 Below is a workflow example using American Duroc pig data. 
-> [!NOTE]
-> Fine-mapping is typically performed with sequence data, but we use SNP chip data in this example for demonstration.
 
 ## Data
-The example dataset is provided as [`data.zip`](./data.zip) in the current directory, with original genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
+The example dataset is provided as [`data.zip`](./data.zip) in the current directory, with original chip genotype data downloaded from [Zhuang et al. (2019)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0218263).
 
-The following files are included in the zip file:
-- American_Duroc_pigs_genotypes_qc.bed (.bim/.fam)
-- simulated_pheno.csv
+The following files are included in the dataset:
+- **American_Duroc_genotypes_qc (.bed/.bim/.fam)**
+  - Chip genotypes
+  - Missing genotypes imputed using BEAGLE 
+  - Quality-controlled with MAF >0.01 and HWE *P* >1E-9
+- **chr1.swim.imputed (.bed/.bim/.fam)**
+  - Chr1 sequence genotypes imputed using [SWIM](https://quantgenet.msu.edu/swim/index.html)
+  - Contains all chr1 chip SNPs plus imputed sequence variants
+  - SWIM imputes over 3 million variants on chr1, but this dataset was reduced to only 50k variants for GitHub repository hosting.
+- **simulated_pheno.csv**
 
-The phenotypic values in `simulated_pheno.csv` are simulated:
+The phenotypic values in `simulated_pheno.csv` were simulated with:
 - Heritability (*h*²) = 0.5
 - Two causal variants: `WU_10.2_1_29501954` (chr1:26247570) and `ALGA0001958` (chr1:27032086)
 - Total proportion of variance explained by the two causal variants = 0.04
 - Causal gene: *ARFGEF3*
 
 ## Tools
-- **Genotype data manipulation**: [PLINK 1.9](https://www.cog-genomics.org/plink/)
+- **Genotype data manipulation**: [PLINK 1.9](https://www.cog-genomics.org/plink/1.9/)
 - **GWAS**: [SLEMM](https://github.com/jiang18/slemm/) or [GCTA](https://yanglab.westlake.edu.cn/software/gcta/#MLMA)
 - **Fine-mapping**:
   - **Individual-level data**: [BFMAP](https://github.com/jiang18/bfmap)
@@ -26,20 +31,22 @@ The phenotypic values in `simulated_pheno.csv` are simulated:
     2. [FINEMAP](http://www.christianbenner.com/) and/or [susieR](https://stephenslab.github.io/susieR/)
 
 ## GWAS
-
 ```bash
 # Download and unzip data.zip.
 # Set the data folder as the working directory.
 
 # Create a file named snp_info.csv listing the SNPs to be included in the GRM.
-echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_pigs_genotypes_qc.bim >> snp_info.csv
+echo "SNP" > snp_info.csv && awk '{print $2}' American_Duroc_genotypes_qc.bim >> snp_info.csv
 
 # Run GWAS
-slemm --lmm --phenotype_file simulated_pheno.csv --trait trait1 --bfile American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --out trait1 --num_threads 10 --num_qf 100
-OMP_NUM_THREADS=10 slemm_gwa --pfile American_Duroc_pigs_genotypes_qc --slemm trait1 --out trait1.chr1.txt --chr 1
-
-# Note that the command above performs association tests for only SNPs on chromosome 1.
+slemm --lmm --phenotype_file simulated_pheno.csv --trait trait1 --bfile American_Duroc_genotypes_qc --snp_info_file snp_info.csv --out trait1 --num_threads 10 --num_qf 100
+OMP_NUM_THREADS=10 slemm_gwa --pfile chr1.swim.imputed --slemm trait1 --out trait1.chr1.txt --chr 1
 ````
+> [!NOTE]
+> The SNP info file (`snp_info.csv`) specifies SNPs modeled in the random-effects term (or genomic relationship matrix) of the mixed model.
+> For sequence GWAS, we recommend including medium-density chip SNPs in the SNP info file.
+
+For detailed instructions, refer to [SLEMM GWAS examples](https://github.com/jiang18/slemm/tree/main/examples).
 
 ## Fine-mapping
 ### LD matrix adjustment
@@ -67,7 +74,7 @@ The estimated *h*² for this simulated trait is `0.525258`.
 Based on the association analysis, we defined chr1:26,000,000-30,000,000 as the candidate region for fine-mapping.
 
 ```bash
-plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --recode A --out candidate_region 
+plink --bfile chr1.swim.imputed --chr 1 --from-mb 26 --to-mb 30 --recode A --out candidate_region 
 ld_adjuster --raw candidate_region.raw --grm mph_chip --h2 0.525258 --out ld_adjusted --threads 10
 ````
 The `ld_adjuster` command above generates three output files for fine-mapping using summary statistics:
@@ -79,7 +86,7 @@ The `ld_adjuster` command above generates three output files for fine-mapping us
 Prepare summary statistics for FINEMAP:
 
 ```sh
-plink --bfile American_Duroc_pigs_genotypes_qc --freq --out pigs
+plink --bfile chr1.swim.imputed --freq --out chr1
 ```
 
 ```R
@@ -88,7 +95,7 @@ library(data.table)
 ld_adjusted_prefix = "ld_adjusted"
 out_prefix = "finemap_adj"
 gwa_file = "trait1.chr1.txt"
-frq_file = "pigs.frq"
+frq_file = "chr1.frq"
 n_eff = 751        # Must be an integer (required by FINEMAP)
 
 gwa_result <- fread(gwa_file, head =T)
@@ -155,10 +162,10 @@ write.csv(out, paste0(out_prefix, ".pip.csv"),quote=F,row.names=F)
 ```bash
 # Construct GRM with BFMAP, reusing snp_info.csv used by SLEMM and MPH
 # Note that BFMAP is currently not compatible with MPH's GRM format.
-bfmap --compute_grm 2 --binary_genotype_file American_Duroc_pigs_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
+bfmap --compute_grm 2 --binary_genotype_file American_Duroc_genotypes_qc --snp_info_file snp_info.csv --output bfmap_chip --num_threads 10
 
 # Extract SNPs in the candidate region
-plink --bfile American_Duroc_pigs_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
+plink --bfile American_Duroc_genotypes_qc --chr 1 --from-mb 26 --to-mb 30 --make-bed --out candidate_region
 echo "SNP" > candidate_snp_info.csv && awk '{print $2}' candidate_region.bim >> candidate_snp_info.csv
 
 # Perform shotgun stochastic search with BFMAP
