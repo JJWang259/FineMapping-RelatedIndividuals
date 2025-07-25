@@ -174,7 +174,7 @@ For a matrix with `m` SNPs, `n` individuals, and `c` covariates:
 ### Common Issues
 
 **"Eigen3 not found"**
-Verify the path in `-I/path/to/eigen-3.4.0` matches your actual Eigen installation directory.
+- Verify the path in `-I/path/to/eigen-3.4.0` matches your actual Eigen installation directory.
 
 **"Cholesky decomposition failed"**
 - Check GRM matrix is positive definite
