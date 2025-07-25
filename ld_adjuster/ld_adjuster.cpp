@@ -1,12 +1,12 @@
 /*
- * LD Adjuster - Adjust LD Matrix with GRM
+ * LD Adjuster - Adjust LD Matrix with GRM and Covariates
  * 
  * Author: Jicai Jiang
- * Version: 1.0
+ * Version: 1.1
  * 
  * This program adjusts linkage disequilibrium matrix using genomic 
- * relationship matrix to account for population structure and 
- * relatedness in fine-mapping analysis.
+ * relationship matrix and optional covariates to account for population 
+ * structure, relatedness, and confounding factors in fine-mapping analysis.
  */
 
 #include <Eigen/Dense>
@@ -32,6 +32,113 @@ using namespace Eigen;
 // Use single precision as requested
 typedef Matrix<float, Dynamic, Dynamic> MatrixXf_dyn;
 typedef Matrix<float, Dynamic, 1> VectorXf_dyn;
+
+class CSVReader {
+public:
+    vector<string> individual_ids;
+    vector<string> column_names;
+    unordered_map<string, vector<float>> data; // column_name -> values
+    
+    bool read(const string& filename) {
+        ifstream file(filename);
+        if (!file.is_open()) {
+            cerr << "Error: Cannot open CSV file: " << filename << endl;
+            return false;
+        }
+        
+        string line;
+        
+        // Read header
+        if (!getline(file, line)) {
+            cerr << "Error: Empty CSV file: " << filename << endl;
+            return false;
+        }
+        
+        istringstream header_iss(line);
+        string token;
+        vector<string> header;
+        
+        while (getline(header_iss, token, ',')) {
+            // Trim whitespace
+            token.erase(0, token.find_first_not_of(" \t\r\n"));
+            token.erase(token.find_last_not_of(" \t\r\n") + 1);
+            header.push_back(token);
+        }
+        
+        if (header.empty()) {
+            cerr << "Error: No columns found in CSV header" << endl;
+            return false;
+        }
+        
+        // Store column names (excluding first column which is IID)
+        for (size_t i = 1; i < header.size(); ++i) {
+            column_names.push_back(header[i]);
+            data[header[i]] = vector<float>();
+        }
+        
+        cout << "Found " << column_names.size() << " data columns in CSV file" << endl;
+        
+        // Read data rows
+        while (getline(file, line)) {
+            istringstream iss(line);
+            vector<string> fields;
+            
+            while (getline(iss, token, ',')) {
+                // Trim whitespace
+                token.erase(0, token.find_first_not_of(" \t\r\n"));
+                token.erase(token.find_last_not_of(" \t\r\n") + 1);
+                fields.push_back(token);
+            }
+            
+            if (fields.size() != header.size()) {
+                cerr << "Warning: Skipping malformed CSV line (expected " 
+                     << header.size() << " fields, got " << fields.size() << ")" << endl;
+                continue;
+            }
+            
+            // Store individual ID
+            individual_ids.push_back(fields[0]);
+            
+            // Store data values
+            bool has_missing = false;
+            for (size_t i = 1; i < fields.size(); ++i) {
+                try {
+                    float val = stof(fields[i]);
+                    data[header[i]].push_back(val);
+                } catch (const invalid_argument&) {
+                    has_missing = true;
+                    break;
+                }
+            }
+            
+            if (has_missing) {
+                // Remove this individual due to missing data
+                individual_ids.pop_back();
+                for (size_t i = 1; i < fields.size(); ++i) {
+                    if (!data[header[i]].empty()) {
+                        data[header[i]].pop_back();
+                    }
+                }
+            }
+        }
+        
+        file.close();
+        cout << "Read " << individual_ids.size() << " individuals from CSV file" << endl;
+        return true;
+    }
+    
+    bool hasColumn(const string& col_name) const {
+        return data.find(col_name) != data.end();
+    }
+    
+    vector<float> getColumn(const string& col_name) const {
+        auto it = data.find(col_name);
+        if (it != data.end()) {
+            return it->second;
+        }
+        return vector<float>();
+    }
+};
 
 class PLINKRawReader {
 public:
@@ -190,19 +297,27 @@ public:
 class LDAdjuster {
 private:
     MatrixXf_dyn raw_data;
+    MatrixXf_dyn covariate_data;
     const MatrixXf_dyn* original_grm;  // Pointer to original GRM (no copy)
     vector<int> grm_subset_indices;    // Indices of matched individuals in original GRM
     vector<string> snp_ids;
     vector<string> matched_individuals;
+    vector<float> error_weights;       // Diagonal elements for R matrix
+    bool use_covariates;
     float h2;
     
 public:
-    LDAdjuster(float heritability) : h2(heritability) {}
+    LDAdjuster(float heritability) : h2(heritability), use_covariates(false) {}
     
-    bool loadData(const PLINKRawReader& raw_reader, const GRMReader& grm_reader) {
+    bool loadData(const PLINKRawReader& raw_reader, const GRMReader& grm_reader, 
+                  const CSVReader* weight_reader = nullptr, const string& weight_col_name = "",
+                  const CSVReader* covariate_reader = nullptr, const vector<string>& covariate_col_names = {}) {
+        
         // Create mapping from individual IDs to indices
         unordered_map<string, int> raw_id_to_idx;
         unordered_map<string, int> grm_id_to_idx;
+        unordered_map<string, int> weight_id_to_idx;
+        unordered_map<string, int> covariate_id_to_idx;
         
         for (size_t i = 0; i < raw_reader.individual_ids.size(); ++i) {
             raw_id_to_idx[raw_reader.individual_ids[i]] = i;
@@ -212,21 +327,49 @@ public:
             grm_id_to_idx[grm_reader.individual_ids[i]] = i;
         }
         
-        // Find intersection of individuals
-        vector<int> raw_indices, grm_indices;
-        for (const auto& raw_id : raw_reader.individual_ids) {
-            auto grm_it = grm_id_to_idx.find(raw_id);
-            if (grm_it != grm_id_to_idx.end()) {
-                raw_indices.push_back(raw_id_to_idx[raw_id]);
-                grm_indices.push_back(grm_it->second);
-                matched_individuals.push_back(raw_id);
+        if (weight_reader) {
+            for (size_t i = 0; i < weight_reader->individual_ids.size(); ++i) {
+                weight_id_to_idx[weight_reader->individual_ids[i]] = i;
             }
         }
         
-        cout << "Found " << matched_individuals.size() << " matched individuals" << endl;
+        if (covariate_reader) {
+            for (size_t i = 0; i < covariate_reader->individual_ids.size(); ++i) {
+                covariate_id_to_idx[covariate_reader->individual_ids[i]] = i;
+            }
+        }
+        
+        // Find intersection of individuals across all required files
+        vector<int> raw_indices, grm_indices, weight_indices, covariate_indices;
+        
+        for (const auto& raw_id : raw_reader.individual_ids) {
+            auto grm_it = grm_id_to_idx.find(raw_id);
+            if (grm_it == grm_id_to_idx.end()) continue;
+            
+            // Check weight file if provided
+            if (weight_reader) {
+                auto weight_it = weight_id_to_idx.find(raw_id);
+                if (weight_it == weight_id_to_idx.end()) continue;
+                weight_indices.push_back(weight_it->second);
+            }
+            
+            // Check covariate file if provided
+            if (covariate_reader) {
+                auto covariate_it = covariate_id_to_idx.find(raw_id);
+                if (covariate_it == covariate_id_to_idx.end()) continue;
+                covariate_indices.push_back(covariate_it->second);
+            }
+            
+            // If we reach here, individual is in all required files
+            raw_indices.push_back(raw_id_to_idx[raw_id]);
+            grm_indices.push_back(grm_it->second);
+            matched_individuals.push_back(raw_id);
+        }
+        
+        cout << "Found " << matched_individuals.size() << " matched individuals across all files" << endl;
         
         if (matched_individuals.size() == 0) {
-            cerr << "Error: No matching individuals found between raw and GRM files" << endl;
+            cerr << "Error: No matching individuals found across all required files" << endl;
             return false;
         }
         
@@ -237,6 +380,45 @@ public:
         raw_data = MatrixXf_dyn(n_matched, n_snps);
         for (int i = 0; i < n_matched; ++i) {
             raw_data.row(i) = raw_reader.genotype_matrix.row(raw_indices[i]);
+        }
+        
+        // Extract error weights if provided
+        if (weight_reader) {
+            vector<float> weight_col = weight_reader->getColumn(weight_col_name);
+            error_weights.resize(n_matched);
+            for (int i = 0; i < n_matched; ++i) {
+                error_weights[i] = weight_col[weight_indices[i]];
+            }
+            cout << "Loaded error weights for " << n_matched << " individuals" << endl;
+        } else {
+            // Default to 1.0 for all individuals
+            error_weights.resize(n_matched, 1.0f);
+        }
+        
+        // Extract covariate data if provided
+        if (covariate_reader && !covariate_col_names.empty()) {
+            use_covariates = true;
+            int n_covariates = covariate_col_names.size();
+            covariate_data = MatrixXf_dyn(n_matched, n_covariates);
+            
+            for (int j = 0; j < n_covariates; ++j) {
+                vector<float> covariate_col = covariate_reader->getColumn(covariate_col_names[j]);
+                for (int i = 0; i < n_matched; ++i) {
+                    covariate_data(i, j) = covariate_col[covariate_indices[i]];
+                }
+            }
+            
+            // Check if covariate matrix is full column rank
+            MatrixXf_dyn Q_test = covariate_data;
+            ColPivHouseholderQR<MatrixXf_dyn> qr(Q_test);
+            if (qr.rank() < n_covariates) {
+                cerr << "Error: Covariate matrix is not full column rank (rank = " 
+                     << qr.rank() << ", columns = " << n_covariates << ")" << endl;
+                return false;
+            }
+            
+            cout << "Loaded " << n_covariates << " covariates for " << n_matched 
+                 << " individuals (full rank confirmed)" << endl;
         }
         
         // Store GRM indices instead of copying the matrix
@@ -311,28 +493,29 @@ public:
         cout << "Matrix dimensions: " << raw_data.rows() << " individuals x " 
              << raw_data.cols() << " SNPs" << endl;
         
-        // Step 1: Extract GRM subset and modify diagonal
+        if (use_covariates) {
+            cout << "Using " << covariate_data.cols() << " covariates" << endl;
+        }
+        
+        // Step 1: Extract GRM subset and modify diagonal with error weights
         int n_matched = grm_subset_indices.size();
         MatrixXf_dyn grm_subset(n_matched, n_matched);
         
         float eta = h2 / (1.0f - h2);
         
-        // Extract subset and apply heritability adjustment in one step
+        // Extract subset and apply heritability adjustment + error weights
         for (int i = 0; i < n_matched; ++i) {
             for (int j = 0; j < n_matched; ++j) {
                 grm_subset(i, j) = (*original_grm)(grm_subset_indices[i], grm_subset_indices[j]);
                 if (i == j) {
-                    grm_subset(i, j) = eta * grm_subset(i, j) + 1.0f;
+                    grm_subset(i, j) = eta * grm_subset(i, j) + error_weights[i];
                 }
             }
         }
         
         cout << "Extracted GRM subset and applied heritability adjustment (eta = " << eta << ")" << endl;
         
-        // Step 2: Standardize raw data (transpose in-place to avoid copy)
-        // Work with raw_data directly (individuals x SNPs), transpose conceptually
-        
-        // Center and scale each SNP (column of raw_data)
+        // Step 2: Standardize raw data
         for (int j = 0; j < raw_data.cols(); ++j) {
             VectorXf_dyn col = raw_data.col(j);
             
@@ -381,17 +564,36 @@ public:
         // Step 4: Solve L * X_star = X
         MatrixXf_dyn X_star = llt.matrixL().solve(raw_data);
         
-        cout << "Solved linear system" << endl;
+        cout << "Solved linear system for genotypes" << endl;
         
-        // Step 5: Compute R_star = X_star^T * X_star
-        MatrixXf_dyn R_star = X_star.transpose() * X_star;
+        // Step 5: Handle covariates if present
+        MatrixXf_dyn Q_star;
+        if (use_covariates) {
+            // Solve L * Q_star = Q
+            Q_star = llt.matrixL().solve(covariate_data);
+            cout << "Solved linear system for covariates" << endl;
+        }
         
-        cout << "Computed correlation matrix" << endl;
+        // Step 6: Compute correlation matrix
+        MatrixXf_dyn R_star;
+        if (use_covariates) {
+            // R* = (X*)^T X* - (X*)^T Q* ((Q*)^T Q*)^(-1) (Q*)^T X*
+            MatrixXf_dyn QtQ = Q_star.transpose() * Q_star;
+            MatrixXf_dyn QtX = Q_star.transpose() * X_star;
+            MatrixXf_dyn XtQ = QtX.transpose();
+            
+            R_star = X_star.transpose() * X_star - XtQ * QtQ.llt().solve(QtX);
+            
+            cout << "Computed covariate-adjusted correlation matrix" << endl;
+        } else {
+            R_star = X_star.transpose() * X_star;
+            cout << "Computed correlation matrix" << endl;
+        }
         
-        // Step 6: Compute effective sample size
+        // Step 7: Compute effective sample size
         float n_eff = R_star.diagonal().mean();
         
-        // Step 7: Normalize to correlation matrix (reuse R_star memory)
+        // Step 8: Normalize to correlation matrix (reuse R_star memory)
         VectorXf_dyn diag_sqrt = R_star.diagonal().array().sqrt();
         
         // Use efficient array operations instead of nested loops
@@ -414,14 +616,13 @@ public:
 private:
     void writeResults(const string& prefix, const MatrixXf_dyn& R_adj, float n_eff, long computation_time_ms) {
         // Calculate realistic memory usage 
-        // Peak usage: original_grm (read-only) + grm_subset + raw_data + R_star
         size_t original_grm_memory = original_grm->rows() * original_grm->cols() * sizeof(float);
         size_t grm_subset_memory = grm_subset_indices.size() * grm_subset_indices.size() * sizeof(float);
         size_t snp_memory = R_adj.rows() * R_adj.cols() * sizeof(float);
         size_t raw_memory = raw_data.rows() * raw_data.cols() * sizeof(float);
+        size_t covariate_memory = use_covariates ? covariate_data.rows() * covariate_data.cols() * sizeof(float) : 0;
         
-        // Peak memory includes both original GRM and subset during computation
-        size_t peak_memory_mb = (original_grm_memory + grm_subset_memory + snp_memory + raw_memory) / (1024 * 1024);
+        size_t peak_memory_mb = (original_grm_memory + grm_subset_memory + snp_memory + raw_memory + covariate_memory) / (1024 * 1024);
         
         // Write summary file
         ofstream summary_file(prefix + ".summary");
@@ -429,6 +630,9 @@ private:
         summary_file << "Number of matched individuals: " << matched_individuals.size() << endl;
         summary_file << "Number of SNPs: " << snp_ids.size() << endl;
         summary_file << "Heritability: " << h2 << endl;
+        if (use_covariates) {
+            summary_file << "Number of covariates: " << covariate_data.cols() << endl;
+        }
         summary_file << "Computation time (ms): " << computation_time_ms << endl;
         summary_file << "Peak memory usage (MB): " << peak_memory_mb << endl;
         summary_file.close();
@@ -461,8 +665,10 @@ private:
 
 int main(int argc, char* argv[]) {
     string raw_file, grm_prefix, output_prefix;
+    string error_weight_file, error_weight_name;
+    string covariate_file, covariate_names_str;
     float h2 = 0.5f;
-    int num_threads = 1; // Default to 1 for consistency with other tools
+    int num_threads = 1;
     
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
@@ -477,6 +683,14 @@ int main(int argc, char* argv[]) {
             output_prefix = argv[++i];
         } else if ((arg == "--threads" || arg == "--num_threads") && i + 1 < argc) {
             num_threads = stoi(argv[++i]);
+        } else if (arg == "--error_weight_file" && i + 1 < argc) {
+            error_weight_file = argv[++i];
+        } else if (arg == "--error_weight_name" && i + 1 < argc) {
+            error_weight_name = argv[++i];
+        } else if (arg == "--covariate_file" && i + 1 < argc) {
+            covariate_file = argv[++i];
+        } else if (arg == "--covariate_names" && i + 1 < argc) {
+            covariate_names_str = argv[++i];
         } else if (arg == "--help") {
             cout << "Usage: " << argv[0] << " --raw <file> --grm <prefix> --h2 <value> --out <prefix> [options]" << endl;
             cout << "Required arguments:" << endl;
@@ -487,13 +701,41 @@ int main(int argc, char* argv[]) {
             cout << "Optional arguments:" << endl;
             cout << "  --threads N        Number of threads to use (default: 1)" << endl;
             cout << "  --num_threads N    Alias for --threads" << endl;
+            cout << "  --error_weight_file CSV file with error weights (requires --error_weight_name)" << endl;
+            cout << "  --error_weight_name Column name for error weights (requires --error_weight_file)" << endl;
+            cout << "  --covariate_file   CSV file with covariates (requires --covariate_names)" << endl;
+            cout << "  --covariate_names  Comma-separated covariate names or 'all' (requires --covariate_file)" << endl;
             cout << "  --help             Show this help message" << endl;
             return 0;
         }
     }
     
+    // Validate required arguments
     if (raw_file.empty() || grm_prefix.empty() || output_prefix.empty()) {
         cerr << "Error: Missing required arguments. Use --help for usage." << endl;
+        return 1;
+    }
+    
+    // Validate paired optional arguments
+    bool has_error_weight_file = !error_weight_file.empty();
+    bool has_error_weight_name = !error_weight_name.empty();
+    bool has_covariate_file = !covariate_file.empty();
+    bool has_covariate_names = !covariate_names_str.empty();
+    
+    if (has_error_weight_file && !has_error_weight_name) {
+        cerr << "Error: --error_weight_file requires --error_weight_name" << endl;
+        return 1;
+    }
+    if (has_error_weight_name && !has_error_weight_file) {
+        cerr << "Error: --error_weight_name requires --error_weight_file" << endl;
+        return 1;
+    }
+    if (has_covariate_file && !has_covariate_names) {
+        cerr << "Error: --covariate_file requires --covariate_names" << endl;
+        return 1;
+    }
+    if (has_covariate_names && !has_covariate_file) {
+        cerr << "Error: --covariate_names requires --covariate_file" << endl;
         return 1;
     }
     
@@ -505,13 +747,24 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(num_threads);
 #endif
     
-    cout << "LD Adjuster v1.0 by Jicai Jiang" << endl;
+    cout << "LD Adjuster v1.1 by Jicai Jiang" << endl;
     cout << "================================" << endl;
     cout << "Raw file: " << raw_file << endl;
     cout << "GRM prefix: " << grm_prefix << endl;
     cout << "Heritability: " << h2 << endl;
     cout << "Output prefix: " << output_prefix << endl;
     cout << "Threads: " << num_threads << endl;
+    
+    if (has_error_weight_file) {
+        cout << "Error weight file: " << error_weight_file << endl;
+        cout << "Error weight column: " << error_weight_name << endl;
+    }
+    
+    if (has_covariate_file) {
+        cout << "Covariate file: " << covariate_file << endl;
+        cout << "Covariate names: " << covariate_names_str << endl;
+    }
+    
     cout << endl;
     
     // Load data
@@ -525,15 +778,81 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    // Load optional CSV files
+    CSVReader* weight_reader = nullptr;
+    CSVReader* covariate_reader = nullptr;
+    vector<string> covariate_col_names;
+    
+    if (has_error_weight_file) {
+        weight_reader = new CSVReader();
+        if (!weight_reader->read(error_weight_file)) {
+            delete weight_reader;
+            return 1;
+        }
+        
+        // Check if the specified column exists
+        if (!weight_reader->hasColumn(error_weight_name)) {
+            cerr << "Error: Column '" << error_weight_name << "' not found in error weight file" << endl;
+            delete weight_reader;
+            return 1;
+        }
+    }
+    
+    if (has_covariate_file) {
+        covariate_reader = new CSVReader();
+        if (!covariate_reader->read(covariate_file)) {
+            delete weight_reader;
+            delete covariate_reader;
+            return 1;
+        }
+        
+        // Parse covariate column names
+        if (covariate_names_str == "all") {
+            covariate_col_names = covariate_reader->column_names;
+        } else {
+            istringstream iss(covariate_names_str);
+            string token;
+            while (getline(iss, token, ',')) {
+                // Trim whitespace
+                token.erase(0, token.find_first_not_of(" \t\r\n"));
+                token.erase(token.find_last_not_of(" \t\r\n") + 1);
+                
+                if (!covariate_reader->hasColumn(token)) {
+                    cerr << "Error: Column '" << token << "' not found in covariate file" << endl;
+                    delete weight_reader;
+                    delete covariate_reader;
+                    return 1;
+                }
+                covariate_col_names.push_back(token);
+            }
+        }
+        
+        if (covariate_col_names.empty()) {
+            cerr << "Error: No valid covariate columns specified" << endl;
+            delete weight_reader;
+            delete covariate_reader;
+            return 1;
+        }
+    }
+    
     // Perform LD adjustment
     LDAdjuster adjuster(h2);
-    if (!adjuster.loadData(raw_reader, grm_reader)) {
+    if (!adjuster.loadData(raw_reader, grm_reader, weight_reader, error_weight_name, 
+                          covariate_reader, covariate_col_names)) {
+        delete weight_reader;
+        delete covariate_reader;
         return 1;
     }
     
     if (!adjuster.computeLDAdjustment(output_prefix)) {
+        delete weight_reader;
+        delete covariate_reader;
         return 1;
     }
+    
+    // Clean up
+    delete weight_reader;
+    delete covariate_reader;
     
     cout << "LD adjustment completed successfully!" << endl;
     return 0;
