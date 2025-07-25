@@ -307,7 +307,7 @@ private:
     float h2;
     
 public:
-    LDAdjuster(float heritability) : h2(heritability), use_covariates(false) {}
+    LDAdjuster(float heritability) : use_covariates(false), h2(heritability) {}
     
     bool loadData(const PLINKRawReader& raw_reader, const GRMReader& grm_reader, 
                   const CSVReader* weight_reader = nullptr, const string& weight_col_name = "",
