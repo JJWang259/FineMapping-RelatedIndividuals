@@ -1,4 +1,4 @@
-# LD Adjuster
+# LD Adjuster by Jicai Jiang
 
 A C++ program for adjusting linkage disequilibrium (LD) matrix with genomic relationship matrix and optional covariates.
 
