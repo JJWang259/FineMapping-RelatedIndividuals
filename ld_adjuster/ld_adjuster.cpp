@@ -669,6 +669,8 @@ int main(int argc, char* argv[]) {
     float h2 = 0.5f;
     int num_threads = 1;
     
+    cout << "LD Adjuster v1.1.1 by Jicai Jiang" << endl;
+    cout << "=================================" << endl;
     // Parse command line arguments
     for (int i = 1; i < argc; ++i) {
         string arg = argv[i];
@@ -746,8 +748,6 @@ int main(int argc, char* argv[]) {
     Eigen::setNbThreads(num_threads);
 #endif
     
-    cout << "LD Adjuster v1.1 by Jicai Jiang" << endl;
-    cout << "================================" << endl;
     cout << "Raw file: " << raw_file << endl;
     cout << "GRM prefix: " << grm_prefix << endl;
     cout << "Heritability: " << h2 << endl;
