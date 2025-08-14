@@ -2,7 +2,7 @@
  * LD Adjuster - Adjust LD Matrix with GRM and Covariates
  * 
  * Author: Jicai Jiang
- * Version: 1.1
+ * Version: 1.1.1
  * 
  * This program adjusts linkage disequilibrium matrix using genomic 
  * relationship matrix and optional covariates to account for population 
