@@ -507,11 +507,10 @@ public:
         for (int i = 0; i < n_matched; ++i) {
             for (int j = 0; j < n_matched; ++j) {
                 grm_subset(i, j) = (*original_grm)(grm_subset_indices[i], grm_subset_indices[j]);
-                if (i == j) {
-                    grm_subset(i, j) = eta * grm_subset(i, j) + error_weights[i];
-                }
             }
         }
+        grm_subset *= eta;
+        grm_subset.diagonal() += error_weights;
         
         cout << "Extracted GRM subset and applied heritability adjustment (eta = " << eta << ")" << endl;
         
