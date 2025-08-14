@@ -510,7 +510,7 @@ public:
             }
         }
         grm_subset *= eta;
-        grm_subset.diagonal() += error_weights;
+        grm_subset.diagonal() += Map<VectorXf_dyn>(error_weights.data(), error_weights.size());
         
         cout << "Extracted GRM subset and applied heritability adjustment (eta = " << eta << ")" << endl;
         
