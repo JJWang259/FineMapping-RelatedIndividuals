@@ -15,11 +15,11 @@ Building on this work, we introduce two new methods, FINEMAP-adj and SuSiE-adj, 
 ## FINEMAP-adj and SuSiE-adj
 The core of FINEMAP-adj and SuSiE-adj is the use of a relatedness-adjusted LD matrix, an adjusted sample size (effective sample size), and mixed-model association statistics.
 
-While mixed models are the standard method for GWAS, special attention is required for the relatedness-adjusted LD matrix and effective sample size, which can be computed using our [LD Adjuster](ld_adjuster/) tool. 
+While mixed models are the standard method for GWAS, special attention is required for the relatedness-adjusted LD matrix and effective sample size, which can be computed using our [LD Adjuster](https://github.com/jiang18/ld_adjuster) tool. 
 
 These serve as standard inputs to [FINEMAP](http://www.christianbenner.com/) and [SuSiE](https://stephenslab.github.io/susieR/index.html) to enable FINEMAP-adj and SuSiE-adj, respectively.
 
-### [LD Adjuster](ld_adjuster/): relatedness-adjusted LD matrix
+### [LD Adjuster](https://github.com/jiang18/ld_adjuster): relatedness-adjusted LD matrix
 
 ### FINEMAP-adj: [FINEMAP](http://www.christianbenner.com/) with relatedness-adjusted inputs
 `finemap --sss` is the major routine for FINEMAP-adj.
