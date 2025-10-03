@@ -27,7 +27,7 @@ The phenotypic values in `simulated_pheno.csv` were simulated with:
 - **Fine-mapping**:
   - **Individual-level data**: [BFMAP](https://github.com/jiang18/bfmap)
   - **Summary statistics**: FINEMAP-adj and SuSiE-adj
-    1. **LD matrix adjustment**: [MPH](https://jiang18.github.io/mph/) and [LD Adjuster](../ld_adjuster/)
+    1. **LD matrix adjustment**: [MPH](https://jiang18.github.io/mph/) and [LD Adjuster](https://github.com/jiang18/ld_adjuster)
     2. [FINEMAP](http://www.christianbenner.com/) and/or [susieR](https://stephenslab.github.io/susieR/)
 
 ## GWAS
